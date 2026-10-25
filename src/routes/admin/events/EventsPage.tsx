@@ -70,6 +70,7 @@ export function EventsPage() {
   const sessionToken = getStoredSessionToken() ?? "";
   const events = useQuery(api.events.listEvents, { sessionToken });
   const createEvent = useMutation(api.events.createEvent);
+  const endEvent = useMutation(api.events.endEvent);
   const [name, setName] = useState("");
   const [expandedEventId, setExpandedEventId] = useState<Id<"events"> | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -92,6 +93,11 @@ export function EventsPage() {
       isCreatingRef.current = false;
       setIsCreating(false);
     }
+  }
+
+  async function handleEnd(eventId: Id<"events">) {
+    if (!window.confirm("End this event? Nobody will be able to join or post afterwards.")) return;
+    await endEvent({ sessionToken, eventId });
   }
 
   return (
@@ -144,6 +150,15 @@ export function EventsPage() {
                     >
                       Manage
                     </Link>
+                    {live && (
+                      <button
+                        type="button"
+                        className="btn btn--secondary"
+                        onClick={() => handleEnd(event.eventId)}
+                      >
+                        End event
+                      </button>
+                    )}
                   </div>
                   <div className="links">
                     <LinkRow
