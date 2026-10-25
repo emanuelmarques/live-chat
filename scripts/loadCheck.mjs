@@ -5,7 +5,7 @@
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api.js";
 
-const PARTICIPANT_COUNT = 150;
+const PARTICIPANT_COUNT = Number(process.env.LOADCHECK_PARTICIPANTS ?? 150);
 const url = process.env.VITE_CONVEX_URL ?? "http://127.0.0.1:3210";
 const client = new ConvexHttpClient(url);
 
