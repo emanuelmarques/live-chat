@@ -107,7 +107,7 @@ export function ProjectorPage() {
               <li>
                 <span className="join-steps__label">and enter the code</span>
                 <span className="join-steps__code" aria-label={`Event code ${joinSlug.split("").join(" ")}`}>
-                  {joinSlug.replace(/(.{3})(?=.)/g, "$1 ")}
+                  {joinSlug.toUpperCase().replace(/(.{3})(?=.)/g, "$1 ")}
                 </span>
               </li>
             </ol>
