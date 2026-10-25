@@ -42,8 +42,8 @@ test.describe("US3: live polls with shared highlighting", () => {
 
     await participant.getByRole("button", { name: "Red" }).click();
 
-    await expect(participant.getByText("1 vote(s)")).toBeVisible({ timeout: 5000 });
-    await expect(projector.getByText("1 vote(s)")).toBeVisible({ timeout: 5000 });
+    await expect(participant.getByText("1 vote(s)").first()).toBeVisible({ timeout: 5000 });
+    await expect(projector.getByText("1 vote(s)").first()).toBeVisible({ timeout: 5000 });
 
     // A second vote from the same participant is rejected client-side (button disabled).
     await expect(participant.getByRole("button", { name: "Red" })).toBeDisabled();
@@ -83,7 +83,7 @@ test.describe("US3: live polls with shared highlighting", () => {
     await expect(participant.getByText(/vote\(s\)/)).toHaveCount(0);
 
     await mod.getByRole("button", { name: "Reveal results now" }).click();
-    await expect(participant.getByText("1 vote(s)")).toBeVisible({ timeout: 5000 });
+    await expect(participant.getByText("1 vote(s)").first()).toBeVisible({ timeout: 5000 });
 
     await modContext.close();
     await participantContext.close();

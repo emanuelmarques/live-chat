@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { useQuery, useMutation, api } from "../../lib/convexClient";
-import { getStoredParticipant, storeParticipant } from "../../lib/participant";
+import { getStoredParticipant, joinOncePerBrowser, participantStorageKey } from "../../lib/participant";
 import { TextField } from "../../components/TextField";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
@@ -13,6 +13,20 @@ export function JoinPage() {
   const joinEvent = useMutation(api.participants.joinEvent);
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Bumped when another tab (same browser) finishes joining this event, so
+  // this tab re-reads localStorage and redirects instead of letting someone
+  // join a second time from a second tab (see `joinOncePerBrowser`).
+  const [, forceRecheck] = useState(0);
+
+  useEffect(() => {
+    if (!joinSlug) return;
+    const key = participantStorageKey(joinSlug);
+    function onStorage(event: StorageEvent) {
+      if (event.key === key) forceRecheck((n) => n + 1);
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [joinSlug]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -23,8 +37,10 @@ export function JoinPage() {
       return;
     }
     try {
-      const { participantId } = await joinEvent({ eventId: info!.eventId, displayName: trimmed });
-      storeParticipant(joinSlug!, { participantId, displayName: trimmed });
+      await joinOncePerBrowser(joinSlug!, async () => {
+        const { participantId } = await joinEvent({ eventId: info!.eventId, displayName: trimmed });
+        return { participantId, displayName: trimmed };
+      });
       navigate(`/chat/${joinSlug}`, { replace: true });
     } catch {
       setError("Couldn't join right now. Please try again.");
@@ -47,16 +63,16 @@ export function JoinPage() {
     showBlobs = true;
     content = (
       <form onSubmit={handleSubmit} style={{ display: "contents" }}>
-        <div style={{ marginTop: "auto", paddingTop: "8rem", position: "relative" }}>
+        <div className="join__hero">
           <p className="mono-label" style={{ margin: "0 0 0.5rem", color: "var(--muted)" }}>
             You're joining
           </p>
           <h1 className="join__title">{info.name}</h1>
-          <p style={{ margin: "0.9rem 0 0", color: "#4a4339", maxWidth: 300 }}>
+          <p className="join__lede">
             Chat with the room and everyone watching remotely. No account, no app.
           </p>
         </div>
-        <div className="stack" style={{ marginTop: "2.5rem", position: "relative" }}>
+        <div className="stack join__form">
           <TextField
             label="Your name"
             value={displayName}
@@ -81,11 +97,11 @@ export function JoinPage() {
   }
 
   return (
-    <main className="shell join">
+    <main className={`shell join${showBlobs ? " join--form" : ""}`}>
       {showBlobs && (
         <>
-          <span className="join__blob" aria-hidden="true" style={{ right: -90, top: -90, width: 300, height: 300, background: "var(--live)" }} />
-          <span className="join__blob" aria-hidden="true" style={{ right: 60, top: 150, width: 90, height: 90, background: "var(--poll)" }} />
+          <span className="join__blob join__blob--a" aria-hidden="true" />
+          <span className="join__blob join__blob--b" aria-hidden="true" />
         </>
       )}
       {content}

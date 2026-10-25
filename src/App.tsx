@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { HomePage } from "./routes/home/HomePage";
 import { JoinPage } from "./routes/join/JoinPage";
 import { ChatPage } from "./routes/chat/ChatPage";
 import { ProjectorPage } from "./routes/projector/ProjectorPage";
@@ -13,7 +14,7 @@ import { ParticipantsPage } from "./routes/admin/participants/ParticipantsPage";
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/admin/events" replace />} />
+      <Route path="/" element={<HomePage />} />
 
       <Route path="/join/:joinSlug" element={<JoinPage />} />
       <Route path="/chat/:joinSlug" element={<ChatPage />} />

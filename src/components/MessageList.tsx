@@ -33,15 +33,13 @@ export function MessageList({ messages, currentParticipantId, onDelete, onReply 
         const isOwn = message.participantId === currentParticipantId;
         return (
           <li key={message.messageId} className={`msg${isOwn ? " msg--own" : ""}`}>
-            {!isOwn && (
-              <span
-                aria-hidden="true"
-                className="avatar"
-                style={{ background: avatarColor(message.authorDisplayName) }}
-              >
-                {message.authorDisplayName.charAt(0).toUpperCase()}
-              </span>
-            )}
+            <span
+              aria-hidden="true"
+              className="avatar"
+              style={{ background: avatarColor(message.authorDisplayName) }}
+            >
+              {message.authorDisplayName.charAt(0).toUpperCase()}
+            </span>
             <div className="msg__body">
               <div className="msg__meta">
                 <strong className="msg__name">{message.authorDisplayName}</strong> · {formatTime(message.sentAt)}

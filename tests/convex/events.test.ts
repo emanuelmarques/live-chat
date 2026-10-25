@@ -33,6 +33,35 @@ describe("events", () => {
     expect(missing).toBeNull();
   });
 
+  test("the join code is short, from an unambiguous alphabet, and matched case-insensitively", async () => {
+    const t = newTestInstance();
+    const sessionToken = await createModeratorSession(t);
+    const { eventId, joinSlug } = await t.mutation(api.events.createEvent, {
+      sessionToken,
+      name: "Podcast Live",
+    });
+
+    expect(joinSlug).toMatch(/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
+
+    const lower = await t.query(api.events.getJoinInfo, { joinSlug: joinSlug.toLowerCase() });
+    expect(lower?.eventId).toBe(eventId);
+
+    const padded = await t.query(api.events.getJoinInfo, { joinSlug: `  ${joinSlug}  ` });
+    expect(padded?.eventId).toBe(eventId);
+  });
+
+  test("every event gets a distinct join code", async () => {
+    const t = newTestInstance();
+    const sessionToken = await createModeratorSession(t);
+    const codes = await Promise.all(
+      Array.from({ length: 10 }, (_, i) =>
+        t.mutation(api.events.createEvent, { sessionToken, name: `Event ${i}` }),
+      ),
+    );
+    const slugs = codes.map((c) => c.joinSlug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+  });
+
   test("endEvent flips status, after which getJoinInfo reports 'ended'", async () => {
     const t = newTestInstance();
     const sessionToken = await createModeratorSession(t);

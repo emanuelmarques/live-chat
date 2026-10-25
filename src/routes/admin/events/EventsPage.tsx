@@ -46,6 +46,26 @@ function LinkRow({ label, hint, path }: { label: string; hint: string; path: str
   );
 }
 
+function CopyCodeButton({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard unavailable — the code is still visible to read/type by hand.
+    }
+  }
+
+  return (
+    <button type="button" className="btn btn--secondary" onClick={copy}>
+      {copied ? "Copied ✓" : "Copy code"}
+    </button>
+  );
+}
+
 export function EventsPage() {
   const sessionToken = getStoredSessionToken() ?? "";
   const events = useQuery(api.events.listEvents, { sessionToken });
@@ -143,14 +163,21 @@ export function EventsPage() {
                     aria-expanded={expanded}
                     onClick={() => setExpandedEventId(expanded ? null : event.eventId)}
                   >
-                    {expanded ? "Hide" : "Show"} QR code
+                    {expanded ? "Hide" : "Show"} QR &amp; code
                   </button>
                   {expanded && (
-                    <div style={{ marginTop: "0.5rem" }}>
+                    <div className="row" style={{ marginTop: "0.5rem", flexWrap: "wrap", alignItems: "flex-start" }}>
                       <QrCode
                         value={`${window.location.origin}/join/${event.joinSlug}`}
                         size={200}
                       />
+                      <div className="join-code-block">
+                        <span className="mono-label" style={{ color: "var(--muted)" }}>
+                          Can't scan? Enter this code
+                        </span>
+                        <span className="join-code">{event.joinSlug}</span>
+                        <CopyCodeButton code={event.joinSlug} />
+                      </div>
                     </div>
                   )}
                 </li>

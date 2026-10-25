@@ -6,6 +6,14 @@ test.describe("US1: accessibility (FR-036)", () => {
   test("join and chat flow is keyboard operable and passes an automated axe scan", async ({
     page,
   }) => {
+    // New chat messages animate in (`.msgs > li { animation: rise ... }`),
+    // which the stylesheet itself already gates behind
+    // `prefers-reduced-motion: no-preference`. Requesting reduced motion here
+    // skips that animation so the axe scan reads final, settled colors
+    // instead of a transient mid-fade-in frame (which briefly looks like a
+    // real contrast violation — it isn't one).
+    await page.emulateMedia({ reducedMotion: "reduce" });
+
     const client = newConvexClient();
     const { joinSlug } = await createTestEvent(client, `Accessibility ${Date.now()}`);
 
