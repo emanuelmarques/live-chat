@@ -1,0 +1,20 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-25T12:00:00Z" },
+  "title": "Live Chat — Design da plataforma",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Join.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "Participant · Join" },
+    "Main.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "Participant · Chat + poll", "is_interactive": false },
+    "Projector.dc.html": { "x": 940, "y": 0, "w": 1920, "h": 1080, "title": "Projector view" },
+    "Moderator.dc.html": { "x": 0, "y": 1500, "w": 1440, "h": 980, "title": "Moderator panel", "expand": "fill" },
+    "Setup.dc.html": { "x": 1520, "y": 1500, "w": 1280, "h": 760, "title": "Event setup · QR + links", "expand": "fill" }
+  },
+  "order": ["Main.dc.html", "Join.dc.html", "Projector.dc.html", "Moderator.dc.html", "Setup.dc.html"],
+  "notes": {
+    "t1": { "x": 0, "y": -260, "text": "Participant and projector", "kind": "title1", "maxW": 2860 },
+    "t2": { "x": 0, "y": 1240, "text": "Moderator", "kind": "title1", "maxW": 2800 }
+  },
+  "designSystems": []
+}

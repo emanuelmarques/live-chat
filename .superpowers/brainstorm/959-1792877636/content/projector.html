@@ -1,0 +1,51 @@
+<h2>Ecrã projetado</h2>
+<p class="subtitle">Qual destes layouts preferes? (Mensagens com resposta aparecem citadas.)</p>
+
+<div class="split">
+  <div class="mockup" data-choice="a" onclick="toggleSelect(this)">
+    <div class="mockup-header">A — Chat em destaque, QR no canto</div>
+    <div class="mockup-body" style="background:#111;color:#eee;padding:12px;min-height:340px;position:relative;font-size:13px">
+      <div style="font-weight:700;margin-bottom:10px">🎙️ Podcast Live #12 &nbsp;·&nbsp; <span style="opacity:.6">128 online</span></div>
+      <div style="margin-bottom:8px"><b style="color:#7cc4ff">Ana</b> Alguém sabe se vão partilhar os slides? 🙏</div>
+      <div style="margin-bottom:8px"><b style="color:#ffb86c">Rui</b> <span style="opacity:.55;border-left:2px solid #555;padding-left:6px">↪ Ana: Alguém sabe…</span><br>Sim, no fim do evento!</div>
+      <div style="margin-bottom:8px"><b style="color:#a6e22e">Marta</b> Excelente ponto sobre IA 👏👏</div>
+      <div style="margin-bottom:8px"><b style="color:#f78fb3">João</b> E quanto custa a implementação?</div>
+      <div style="position:absolute;right:10px;bottom:10px;background:#fff;color:#000;width:70px;height:70px;display:flex;align-items:center;justify-content:center;font-size:11px;text-align:center">QR<br>code</div>
+    </div>
+  </div>
+
+  <div class="mockup" data-choice="b" onclick="toggleSelect(this)">
+    <div class="mockup-header">B — Chat + painel lateral (QR, tópicos, dúvidas)</div>
+    <div class="mockup-body" style="background:#111;color:#eee;padding:0;min-height:340px;display:flex;font-size:13px">
+      <div style="flex:2;padding:12px">
+        <div style="font-weight:700;margin-bottom:10px">🎙️ Podcast Live #12</div>
+        <div style="margin-bottom:8px"><b style="color:#7cc4ff">Ana</b> Alguém sabe se vão partilhar os slides? 🙏</div>
+        <div style="margin-bottom:8px"><b style="color:#ffb86c">Rui</b> <span style="opacity:.55">↪ Ana</span> Sim, no fim!</div>
+        <div style="margin-bottom:8px"><b style="color:#a6e22e">Marta</b> Excelente ponto sobre IA 👏👏</div>
+        <div style="margin-bottom:8px"><b style="color:#f78fb3">João</b> E quanto custa?</div>
+      </div>
+      <div style="flex:1;background:#1c1c1c;padding:12px;border-left:1px solid #333">
+        <div style="background:#fff;color:#000;width:80px;height:80px;display:flex;align-items:center;justify-content:center;font-size:11px;margin-bottom:12px">QR code</div>
+        <div style="opacity:.6;font-size:11px;margin-bottom:4px">TÓPICOS</div>
+        <div>IA · Preços · Slides</div>
+        <div style="opacity:.6;font-size:11px;margin:10px 0 4px">DÚVIDAS</div>
+        <div>Custo? (5)<br>Slides? (3)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:28px">Quando há uma sondagem ativa (o mesmo para A ou B)</h3>
+<div class="mockup">
+  <div class="mockup-header">Sondagem em destaque no ecrã</div>
+  <div class="mockup-body" style="background:#111;color:#eee;padding:16px;font-size:14px">
+    <div style="background:#6c5ce7;color:#fff;padding:14px;border-radius:8px;margin-bottom:10px">
+      <div style="font-size:11px;letter-spacing:1px;opacity:.85">📊 SONDAGEM ATIVA — vota no telemóvel</div>
+      <div style="font-size:17px;font-weight:700;margin:6px 0 10px">Qual o próximo tema?</div>
+      <div style="background:rgba(255,255,255,.25);padding:6px;margin-bottom:4px;border-radius:4px">IA no trabalho <span style="float:right">48%</span></div>
+      <div style="background:rgba(255,255,255,.15);padding:6px;margin-bottom:4px;border-radius:4px">Privacidade <span style="float:right">31%</span></div>
+      <div style="background:rgba(255,255,255,.15);padding:6px;border-radius:4px">Open source <span style="float:right">21%</span></div>
+    </div>
+    <div style="opacity:.6;font-size:12px">… o chat continua por baixo, em tamanho menor</div>
+  </div>
+</div>

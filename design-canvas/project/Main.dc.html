@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Participant chat</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;display:flex;flex-direction:column;background:#F3EEE3;color:#17130F;font-family:'Instrument Sans',sans-serif;font-size:15px;line-height:1.4;overflow:hidden">
+
+  <!-- header -->
+  <header style="display:flex;align-items:center;gap:10px;padding:16px 16px 12px;border-bottom:2px solid #17130F;background:#F3EEE3">
+    <div style="flex-grow:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#C2360F;font-weight:500">
+        <span style="width:8px;height:8px;border-radius:50%;background:#E8421B;display:inline-block"></span>Live
+        <span style="color:#6B6256">· 128 here</span>
+      </div>
+      <h1 style="margin:2px 0 0;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:22px;line-height:1.1;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Founders &amp; Coffee — Ep. 14</h1>
+    </div>
+    <div aria-label="You are Sofia M." style="flex-shrink:0;display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border:2px solid #17130F;border-radius:999px;background:#FFFDF8;font-weight:600;font-size:13px">
+      <span style="width:26px;height:26px;border-radius:50%;background:#17130F;color:#F3EEE3;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:13px">S</span>Sofia
+    </div>
+  </header>
+
+  <!-- active poll -->
+  <section aria-label="Active poll" style="margin:12px 12px 0;padding:14px;border-radius:16px;background:#2340F0;color:#fff;box-shadow:0 3px 0 #17130F;border:2px solid #17130F">
+    <div style="display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:500">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>
+      Poll in progress · 64 votes
+    </div>
+    <p style="margin:6px 0 10px;font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:18px;line-height:1.2">Which topic should we dig into next?</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button style="min-height:44px;text-align:left;padding:0 14px;border-radius:12px;border:2px solid #fff;background:#fff;color:#1B2FC0;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:space-between">Pricing for early adopters<span style="font-family:'DM Mono',monospace;font-size:12px">44%</span></button>
+      <button style="min-height:44px;text-align:left;padding:0 14px;border-radius:12px;border:2px solid rgba(255,255,255,.7);background:transparent;color:#fff;font-weight:500;font-size:15px">Hiring the first 10 people</button>
+      <button style="min-height:44px;text-align:left;padding:0 14px;border-radius:12px;border:2px solid rgba(255,255,255,.7);background:transparent;color:#fff;font-weight:500;font-size:15px">Fundraising in 2026</button>
+    </div>
+    <p style="margin:10px 0 0;font-size:12px;opacity:.9;display:flex;align-items:center;gap:6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>You voted · results are live
+    </p>
+  </section>
+
+  <!-- messages -->
+  <main aria-label="Chat messages" style="flex-grow:1;min-height:0;overflow:hidden;padding:14px 12px 0;display:flex;flex-direction:column;gap:12px;justify-content:flex-end">
+
+    <article style="display:flex;gap:8px;align-items:flex-start">
+      <span aria-hidden="true" style="flex-shrink:0;width:30px;height:30px;border-radius:50%;background:#F4B73F;border:2px solid #17130F;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:13px">M</span>
+      <div style="max-width:300px">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.04em;color:#6B6256;margin-bottom:3px"><b style="color:#17130F;font-weight:500">Maria L.</b> · 21:04</div>
+        <div style="padding:10px 12px;background:#FFFDF8;border:2px solid #17130F;border-radius:4px 16px 16px 16px">Will the slides be shared after the session?</div>
+      </div>
+    </article>
+
+    <article style="display:flex;gap:8px;align-items:flex-start">
+      <span aria-hidden="true" style="flex-shrink:0;width:30px;height:30px;border-radius:50%;background:#9CD6B8;border:2px solid #17130F;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:13px">T</span>
+      <div style="max-width:300px">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.04em;color:#6B6256;margin-bottom:3px"><b style="color:#17130F;font-weight:500">Tomás R.</b> · remote · 21:05</div>
+        <div style="padding:10px 12px;background:#FFFDF8;border:2px solid #17130F;border-radius:4px 16px 16px 16px">
+          <div style="margin:-2px 0 8px;padding:4px 8px;border-left:4px solid #2340F0;background:#E9E6F8;border-radius:4px;font-size:12px;color:#3B3560"><b style="font-weight:600">Maria L.</b> Will the slides be shared…</div>
+          Yes please, and the recording too 🙌
+        </div>
+      </div>
+    </article>
+
+    <article style="display:flex;justify-content:flex-end">
+      <div style="max-width:300px">
+        <div style="text-align:right;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.04em;color:#6B6256;margin-bottom:3px">You · 21:06</div>
+        <div style="padding:10px 12px;background:#17130F;color:#F3EEE3;border-radius:16px 4px 16px 16px">Loved the point about pricing experiments.</div>
+      </div>
+    </article>
+
+    <article style="display:flex;justify-content:flex-end">
+      <div style="max-width:300px">
+        <div style="text-align:right;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.04em;color:#6B6256;margin-bottom:3px">You · 21:07</div>
+        <div style="padding:10px 12px;border:2px dashed #17130F;border-radius:16px 4px 16px 16px;background:repeating-linear-gradient(135deg,#F3EEE3 0 8px,#EAE3D3 8px 16px)">
+          Some message held by the block-list
+          <div style="margin-top:6px;display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:11px;color:#8A4B00;font-weight:500">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A4B00" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Awaiting approval · only you see this
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <!-- composer -->
+  <footer style="padding:8px 12px 18px;background:#F3EEE3;border-top:2px solid #17130F">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 10px;border-radius:10px;background:#E9E6F8;border-left:4px solid #2340F0;font-size:13px;color:#3B3560">
+      <span style="flex-grow:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Replying to <b style="font-weight:600">Tomás R.</b> — Yes please, and the recording too</span>
+      <button aria-label="Cancel reply" style="width:44px;height:44px;margin:-10px -10px -10px 0;border:0;background:transparent;display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B3560" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <label for="msg" class="visually-hidden" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Message</label>
+      <div style="flex-grow:1;display:flex;align-items:center;min-height:48px;border:2px solid #17130F;border-radius:999px;background:#FFFDF8;padding:0 6px 0 16px">
+        <input id="msg" placeholder="Say something…" style="flex-grow:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:#17130F">
+        <button aria-label="Add emoji" style="width:44px;height:44px;border:0;background:transparent;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17130F" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 14c1 1.5 2.2 2.2 3.5 2.2s2.5-.7 3.5-2.2M9 9.5v.5M15 9.5v.5"/></svg></button>
+      </div>
+      <button aria-label="Send message" style="flex-shrink:0;width:48px;height:48px;border-radius:50%;border:2px solid #17130F;background:#E8421B;box-shadow:0 2px 0 #17130F;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

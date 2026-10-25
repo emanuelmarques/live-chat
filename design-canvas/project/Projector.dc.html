@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Projector view</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width:1920px;height:1080px;box-sizing:border-box;display:flex;gap:56px;padding:56px 64px;background:#14110D;color:#F3EEE3;font-family:'Instrument Sans',sans-serif;overflow:hidden">
+
+  <!-- chat column -->
+  <section style="flex-grow:1;min-width:0;display:flex;flex-direction:column">
+    <header style="display:flex;align-items:center;gap:24px;padding-bottom:28px;border-bottom:3px solid #F3EEE3">
+      <h1 style="margin:0;flex-grow:1;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:64px;line-height:1;letter-spacing:-.02em">Founders &amp; Coffee — Ep. 14</h1>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 22px;border-radius:999px;background:#E8421B;color:#fff;font-family:'DM Mono',monospace;font-size:22px;font-weight:500;letter-spacing:.1em;text-transform:uppercase">
+        <span style="width:14px;height:14px;border-radius:50%;background:#fff;display:inline-block"></span>Live
+      </div>
+    </header>
+
+    <div style="flex-grow:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;gap:30px;padding-top:28px;overflow:hidden">
+
+      <article style="display:flex;gap:22px;align-items:flex-start">
+        <span aria-hidden="true" style="flex-shrink:0;width:64px;height:64px;border-radius:50%;background:#F4B73F;color:#17130F;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:28px">M</span>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:22px;letter-spacing:.04em;color:#A39A8B;margin-bottom:6px"><b style="color:#FF8A5E;font-weight:500">Maria L.</b> · in the room</div>
+          <p style="margin:0;font-size:40px;line-height:1.25;font-weight:500">Will the slides be shared after the session?</p>
+        </div>
+      </article>
+
+      <article style="display:flex;gap:22px;align-items:flex-start">
+        <span aria-hidden="true" style="flex-shrink:0;width:64px;height:64px;border-radius:50%;background:#9CD6B8;color:#17130F;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:28px">T</span>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:22px;letter-spacing:.04em;color:#A39A8B;margin-bottom:6px"><b style="color:#FF8A5E;font-weight:500">Tomás R.</b> · remote</div>
+          <div style="margin:0 0 10px;padding:8px 18px;border-left:6px solid #7B8FFF;background:#201C2E;border-radius:6px;font-size:24px;color:#B9C1FF;max-width:900px"><b style="font-weight:600">Maria L.</b> Will the slides be shared after…</div>
+          <p style="margin:0;font-size:40px;line-height:1.25;font-weight:500">Yes please, and the recording too 🙌</p>
+        </div>
+      </article>
+
+      <article style="display:flex;gap:22px;align-items:flex-start">
+        <span aria-hidden="true" style="flex-shrink:0;width:64px;height:64px;border-radius:50%;background:#E8A0C0;color:#17130F;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:28px">A</span>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:22px;letter-spacing:.04em;color:#A39A8B;margin-bottom:6px"><b style="color:#FF8A5E;font-weight:500">Ana P.</b> · in the room</div>
+          <p style="margin:0;font-size:40px;line-height:1.25;font-weight:500">How did you decide when to raise the price the first time?</p>
+        </div>
+      </article>
+
+      <article style="display:flex;gap:22px;align-items:flex-start">
+        <span aria-hidden="true" style="flex-shrink:0;width:64px;height:64px;border-radius:50%;background:#F3EEE3;color:#17130F;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:28px">S</span>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:22px;letter-spacing:.04em;color:#A39A8B;margin-bottom:6px"><b style="color:#FF8A5E;font-weight:500">Sofia M.</b> · remote</div>
+          <p style="margin:0;font-size:40px;line-height:1.25;font-weight:500">Loved the point about pricing experiments.</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- side column -->
+  <aside style="flex-shrink:0;width:540px;display:flex;flex-direction:column;gap:32px">
+
+    <section aria-label="Active poll" style="padding:36px;border-radius:28px;background:#2340F0;color:#fff;border:3px solid #F3EEE3">
+      <div style="display:flex;align-items:center;gap:12px;font-family:'DM Mono',monospace;font-size:20px;letter-spacing:.1em;text-transform:uppercase;font-weight:500">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>
+        Poll · 64 votes
+      </div>
+      <p style="margin:14px 0 26px;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:40px;line-height:1.1;letter-spacing:-.01em">Which topic should we dig into next?</p>
+
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:26px;font-weight:600;margin-bottom:8px"><span>Pricing for early adopters</span><span style="font-family:'DM Mono',monospace">44%</span></div>
+          <div style="height:22px;border-radius:11px;background:rgba(255,255,255,.22)"><div style="width:44%;height:100%;border-radius:11px;background:#fff"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:26px;font-weight:500;margin-bottom:8px"><span>Hiring the first 10 people</span><span style="font-family:'DM Mono',monospace">34%</span></div>
+          <div style="height:22px;border-radius:11px;background:rgba(255,255,255,.22)"><div style="width:34%;height:100%;border-radius:11px;background:rgba(255,255,255,.8)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:26px;font-weight:500;margin-bottom:8px"><span>Fundraising in 2026</span><span style="font-family:'DM Mono',monospace">22%</span></div>
+          <div style="height:22px;border-radius:11px;background:rgba(255,255,255,.22)"><div style="width:22%;height:100%;border-radius:11px;background:rgba(255,255,255,.8)"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section aria-label="Join" style="margin-top:auto;display:flex;gap:28px;align-items:center;padding:28px;border-radius:28px;background:#F3EEE3;color:#17130F">
+      <svg width="200" height="200" viewBox="0 0 21 21" role="img" aria-label="QR code" shape-rendering="crispEdges" style="flex-shrink:0">
+        <rect width="21" height="21" fill="#F3EEE3"/>
+        <g fill="#17130F"><path d="M0 0h7v7H0zM14 0h7v7h-7zM0 14h7v7H0z"/></g>
+        <g fill="#F3EEE3"><path d="M1 1h5v5H1zM15 1h5v5h-5zM1 15h5v5H1z"/></g>
+        <g fill="#17130F"><path d="M2 2h3v3H2zM16 2h3v3h-3zM2 16h3v3H2zM8 0h2v2H8zM11 1h2v3h-2zM8 4h3v2H8zM9 8h2v2H9zM12 8h3v2h-3zM16 9h3v2h-3zM8 11h2v3H8zM11 12h2v2h-2zM14 12h3v3h-3zM18 13h3v2h-3zM9 15h3v2H9zM13 16h2v3h-2zM16 17h2v2h-2zM19 18h2v3h-2zM8 19h3v2H8zM0 8h3v2H0zM4 9h2v2H4zM0 11h2v2H0z"/></g>
+      </svg>
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:18px;letter-spacing:.1em;text-transform:uppercase;color:#6B6256">Scan to join</div>
+        <div style="margin-top:6px;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:34px;line-height:1.05;letter-spacing:-.01em">Join the chat on your phone</div>
+        <div style="margin-top:12px;font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:#C2360F">livechat.app/j/f9k2</div>
+      </div>
+    </section>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
