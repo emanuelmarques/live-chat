@@ -1707,6 +1707,43 @@ button.poll__option:disabled {
   font-size: 1.3rem;
 }
 
+.notfound__mark {
+  width: clamp(88px, 14vw, 128px);
+  aspect-ratio: 1;
+  margin-bottom: 1.5rem;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: var(--warn-bg);
+  box-shadow: 0 5px 0 var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(3rem, 7vw, 4.5rem);
+  line-height: 1;
+}
+
+.notfound__title {
+  font-size: clamp(2.2rem, 6vw, 4rem);
+  line-height: 1;
+}
+
+.notfound__code {
+  display: inline-block;
+  padding: 0 0.5rem;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.landing__hint a {
+  font-weight: 600;
+}
+
 .landing__hint {
   margin: 1.5rem 0 0;
   font-size: 0.9rem;

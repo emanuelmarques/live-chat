@@ -4,6 +4,7 @@ import { useQuery, api } from "../../lib/convexClient";
 import { MessageList } from "../../components/MessageList";
 import { PollBanner } from "../../components/PollBanner";
 import { EmptyState } from "../../components/EmptyState";
+import { EventNotFound } from "../../components/EventNotFound";
 import { QrCode } from "../../components/QrCode";
 
 type Theme = "dark" | "light";
@@ -50,7 +51,7 @@ export function ProjectorPage() {
     return <p role="status">Loading…</p>;
   }
   if (info === null) {
-    return <EmptyState>We couldn't find this event.</EmptyState>;
+    return <EventNotFound code={joinSlug} />;
   }
 
   const joinUrl = `${window.location.origin}/join/${joinSlug}`;

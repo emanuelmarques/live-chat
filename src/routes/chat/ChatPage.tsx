@@ -7,6 +7,7 @@ import { MessageList, type MessageRow } from "../../components/MessageList";
 import { PollBanner } from "../../components/PollBanner";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
+import { EventNotFound } from "../../components/EventNotFound";
 
 const QUICK_EMOJI = ["😀", "👍", "🎉", "❤️", "😂", "🙏"];
 
@@ -44,7 +45,7 @@ export function ChatPage() {
     return <main><p role="status">Loading…</p></main>;
   }
   if (info === null) {
-    return <main><EmptyState>We couldn't find this event.</EmptyState></main>;
+    return <EventNotFound code={joinSlug} />;
   }
   if (info.status === "ended") {
     return <main><EmptyState>This event has ended.</EmptyState></main>;

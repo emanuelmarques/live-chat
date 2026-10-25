@@ -5,6 +5,7 @@ import { getStoredParticipant, joinOncePerBrowser, participantStorageKey } from 
 import { TextField } from "../../components/TextField";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
+import { EventNotFound } from "../../components/EventNotFound";
 
 export function JoinPage() {
   const { joinSlug } = useParams<{ joinSlug: string }>();
@@ -54,7 +55,7 @@ export function JoinPage() {
   } else if (info === undefined) {
     content = <p role="status">Loading…</p>;
   } else if (info === null) {
-    content = <EmptyState>We couldn't find this event. Check the link and try again.</EmptyState>;
+    return <EventNotFound code={joinSlug} />;
   } else if (info.status === "ended") {
     content = <EmptyState>This event has ended.</EmptyState>;
   } else if (getStoredParticipant(joinSlug)) {
