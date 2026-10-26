@@ -820,38 +820,39 @@ textarea:focus-visible {
   opacity: 0;
   filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35));
   animation-name: reaction-fly-up;
-  animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
+  /* A single linear timing function for the whole animation — re-applying an
+     ease-out curve at each of several keyframe stops (the previous version)
+     decelerates and re-accelerates at every stop, which reads as a stutter
+     rather than one continuous flight. Keyframe positions below (15%, 100%)
+     shape the motion instead: a quick pop in, then one steady rise. */
+  animation-timing-function: linear;
   animation-fill-mode: forwards;
+  will-change: transform, opacity;
 }
 
 @keyframes reaction-fly-up {
   0% {
     opacity: 0;
-    transform: translate(0, 0) scale(0.5) rotate(0deg);
+    transform: translate(0, 0) scale(0.6) rotate(0deg);
   }
-  12% {
+  15% {
     opacity: 1;
-    transform: translate(calc(var(--reaction-drift, 0px) * 0.2), -12vh) scale(1.25)
+    transform: translate(calc(var(--reaction-drift, 0px) * 0.15), -14vh) scale(1.15)
       rotate(calc(var(--reaction-rotate, 0deg) * 0.3));
   }
-  45% {
-    transform: translate(calc(var(--reaction-drift, 0px) * 0.6), -42vh) scale(1.05)
-      rotate(calc(var(--reaction-rotate, 0deg) * 0.7));
-  }
-  80% {
+  85% {
     opacity: 1;
-    transform: translate(var(--reaction-drift, 0px), -75vh) scale(1) rotate(var(--reaction-rotate, 0deg));
   }
   100% {
     opacity: 0;
-    transform: translate(var(--reaction-drift, 0px), -98vh) scale(0.85) rotate(var(--reaction-rotate, 0deg));
+    transform: translate(var(--reaction-drift, 0px), -96vh) scale(0.95) rotate(var(--reaction-rotate, 0deg));
   }
 }
 
 /* Reduced motion still gets real (if much smaller) movement — this is the
    one effect the feature exists for, so a fully static fallback would just
    look broken rather than accommodating. No horizontal drift, no rotation,
-   a short rise instead of a cross-viewport flight. */
+   a short, continuous rise instead of a cross-viewport flight. */
 @media (prefers-reduced-motion: reduce) {
   .reaction-fly {
     animation-name: reaction-fly-up-reduced;
@@ -862,13 +863,11 @@ textarea:focus-visible {
       opacity: 0;
       transform: translateY(0) scale(0.9);
     }
-    20% {
+    15% {
       opacity: 1;
-      transform: translateY(-6vh) scale(1);
     }
-    80% {
+    85% {
       opacity: 1;
-      transform: translateY(-6vh) scale(1);
     }
     100% {
       opacity: 0;
