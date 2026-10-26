@@ -22,6 +22,7 @@ export function ChatPage() {
   const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reactionError, setReactionError] = useState<string | null>(null);
+  const [hiddenPollId, setHiddenPollId] = useState<string | null>(null);
   const composerWrapRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasScrolledToLatest = useRef(false);
@@ -156,8 +157,10 @@ export function ChatPage() {
     }
   }
 
+  const pollIsShowing = Boolean(activePoll?.isActive);
+
   return (
-    <main className={`shell chat${activePoll ? " chat--poll" : ""}`}>
+    <main className={`shell chat${pollIsShowing ? " chat--poll" : ""}`}>
       <FlyingReactions flights={flights} />
       <header className="chat__header">
         <div className="mono-label" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--live-text)" }}>
@@ -167,13 +170,28 @@ export function ChatPage() {
         </div>
         <h1 className="chat__title">{info.name}</h1>
       </header>
-      {activePoll && (
+      {activePoll && activePoll.isActive && (
         <div className="chat__poll">
-          <PollBanner
-            poll={activePoll}
-            onVote={handleVote}
-            hasVoted={hasVotedInPoll(activePoll.pollId)}
-          />
+          <button
+            type="button"
+            className="chat__poll-toggle"
+            aria-expanded={hiddenPollId !== activePoll.pollId}
+            aria-controls="chat-poll-banner"
+            onClick={() =>
+              setHiddenPollId((current) => (current === activePoll.pollId ? null : activePoll.pollId))
+            }
+          >
+            {hiddenPollId === activePoll.pollId ? "Show poll" : "Hide poll · view chat"}
+          </button>
+          {hiddenPollId !== activePoll.pollId && (
+            <div id="chat-poll-banner">
+              <PollBanner
+                poll={activePoll}
+                onVote={handleVote}
+                hasVoted={hasVotedInPoll(activePoll.pollId)}
+              />
+            </div>
+          )}
         </div>
       )}
       <div className="chat__scroll" ref={scrollRef}>
