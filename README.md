@@ -10,6 +10,16 @@ Built per the spec in [`specs/001-hybrid-event-chat/`](specs/001-hybrid-event-ch
 `tasks.md` for the implementation breakdown. There is no AI/LLM dependency (see the
 spec's Clarifications → "Amendment 2026-10-24").
 
+## Screenshots
+
+| Projector | Participant chat |
+|---|---|
+| ![Projector view](docs/screenshots/projector.png) | ![Participant chat view](docs/screenshots/chat.png) |
+
+| Moderation queue | Live poll |
+|---|---|
+| ![Moderation queue](docs/screenshots/moderation.png) | ![Live poll results](docs/screenshots/polls.png) |
+
 ## Stack
 
 TypeScript throughout: React + Vite frontend, [Convex](https://convex.dev) for the
