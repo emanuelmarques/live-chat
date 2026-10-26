@@ -21,10 +21,13 @@
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.1.1"
+    "react-router-dom": "^7.1.1",
+    "unicode-emoji-json": "^0.9.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.1",
+    "@edge-runtime/vm": "^5.0.0",
+    "@eslint/js": "^9.17.0",
     "@playwright/test": "^1.49.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
@@ -34,8 +37,6 @@
     "@typescript-eslint/eslint-plugin": "^8.18.1",
     "@typescript-eslint/parser": "^8.18.1",
     "@vitejs/plugin-react": "^4.3.4",
-    "@edge-runtime/vm": "^5.0.0",
-    "@eslint/js": "^9.17.0",
     "convex-test": "^0.0.37",
     "dotenv": "^16.4.7",
     "eslint": "^9.17.0",

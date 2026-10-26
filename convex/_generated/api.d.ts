@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as crons from "../crons.js";
 import type * as events from "../events.js";
 import type * as export_ from "../export.js";
 import type * as lib_blocklist from "../lib/blocklist.js";
@@ -19,6 +20,7 @@ import type * as messages from "../messages.js";
 import type * as moderation from "../moderation.js";
 import type * as participants from "../participants.js";
 import type * as polls from "../polls.js";
+import type * as reactions from "../reactions.js";
 
 import type {
   ApiFromModules,
@@ -28,6 +30,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  crons: typeof crons;
   events: typeof events;
   export: typeof export_;
   "lib/blocklist": typeof lib_blocklist;
@@ -38,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   moderation: typeof moderation;
   participants: typeof participants;
   polls: typeof polls;
+  reactions: typeof reactions;
 }>;
 
 /**

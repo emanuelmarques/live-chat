@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, api } from "../../lib/convexClient";
+import { useReactionFlights } from "../../lib/useReactionFlights";
 import { MessageList } from "../../components/MessageList";
 import { PollBanner } from "../../components/PollBanner";
 import { EmptyState } from "../../components/EmptyState";
 import { EventNotFound } from "../../components/EventNotFound";
 import { QrCode } from "../../components/QrCode";
+import { FlyingReactions } from "../../components/FlyingReactions";
 
 type Theme = "dark" | "light";
 const THEME_STORAGE_KEY = "liveChat.projectorTheme";
@@ -38,11 +40,13 @@ export function ProjectorPage() {
 
   const info = useQuery(api.events.getJoinInfo, joinSlug ? { joinSlug } : "skip");
   const messages = useQuery(api.messages.listMessages, info ? { eventId: info.eventId } : "skip");
+  const reactions = useQuery(api.reactions.listRecentReactions, info ? { eventId: info.eventId } : "skip");
   const activePoll = useQuery(api.polls.getActivePoll, info ? { eventId: info.eventId } : "skip");
   const participantCount = useQuery(
     api.participants.countParticipants,
     info ? { eventId: info.eventId } : "skip",
   );
+  const flights = useReactionFlights(reactions ?? []);
 
   if (!joinSlug) {
     return <EmptyState>Invalid link.</EmptyState>;
@@ -61,6 +65,7 @@ export function ProjectorPage() {
       className={`projector${activePoll && activePoll.isActive ? " projector--poll" : ""}`}
       data-theme={theme}
     >
+      <FlyingReactions flights={flights} />
       <button type="button" className="theme-toggle" onClick={toggleTheme}>
         {theme === "dark" ? "☀ Light mode" : "☾ Dark mode"}
       </button>

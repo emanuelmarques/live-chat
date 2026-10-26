@@ -71,4 +71,17 @@ export default defineSchema({
     term: v.string(),
     addedAt: v.number(),
   }).index("by_moderator", ["moderatorId"]),
+
+  // Ephemeral Zoom-style flying reactions — not part of the chat transcript,
+  // so they're pruned shortly after they're sent (see crons.ts) rather than
+  // retained for the life of the event.
+  reactions: defineTable({
+    eventId: v.id("events"),
+    participantId: v.id("participants"),
+    emoji: v.string(),
+    sentAt: v.number(),
+  })
+    .index("by_event_sentAt", ["eventId", "sentAt"])
+    .index("by_sentAt", ["sentAt"])
+    .index("by_participant", ["participantId"]),
 });
