@@ -80,4 +80,72 @@ describe("participants", () => {
       t.mutation(api.participants.joinEvent, { eventId, displayName: "Ana" }),
     ).rejects.toThrow();
   });
+
+  test("kickParticipant requires a moderator session", async () => {
+    const t = newTestInstance();
+    const sessionToken = await createModeratorSession(t);
+    const { eventId } = await t.mutation(api.events.createEvent, {
+      sessionToken,
+      name: "Podcast Live",
+    });
+    const { participantId } = await t.mutation(api.participants.joinEvent, {
+      eventId,
+      displayName: "Ana",
+    });
+
+    await expect(
+      t.mutation(api.participants.kickParticipant, {
+        sessionToken: "bad-token",
+        participantId,
+      }),
+    ).rejects.toThrow();
+  });
+
+  test("kickParticipant marks the participant kicked, reflected in listParticipants and getParticipantStatus", async () => {
+    const t = newTestInstance();
+    const sessionToken = await createModeratorSession(t);
+    const { eventId } = await t.mutation(api.events.createEvent, {
+      sessionToken,
+      name: "Podcast Live",
+    });
+    const { participantId } = await t.mutation(api.participants.joinEvent, {
+      eventId,
+      displayName: "Ana",
+    });
+
+    expect(
+      await t.query(api.participants.getParticipantStatus, { eventId, participantId }),
+    ).toEqual({ kicked: false });
+
+    await t.mutation(api.participants.kickParticipant, { sessionToken, participantId });
+
+    expect(
+      await t.query(api.participants.getParticipantStatus, { eventId, participantId }),
+    ).toEqual({ kicked: true });
+    const list = await t.query(api.participants.listParticipants, { sessionToken, eventId });
+    expect(list.find((p) => p.participantId === participantId)?.kickedAt).not.toBeNull();
+  });
+
+  test("kicking an already-kicked participant does not error and keeps the original kick time", async () => {
+    const t = newTestInstance();
+    const sessionToken = await createModeratorSession(t);
+    const { eventId } = await t.mutation(api.events.createEvent, {
+      sessionToken,
+      name: "Podcast Live",
+    });
+    const { participantId } = await t.mutation(api.participants.joinEvent, {
+      eventId,
+      displayName: "Ana",
+    });
+
+    await t.mutation(api.participants.kickParticipant, { sessionToken, participantId });
+    const firstList = await t.query(api.participants.listParticipants, { sessionToken, eventId });
+    const firstKickedAt = firstList.find((p) => p.participantId === participantId)?.kickedAt;
+
+    await t.mutation(api.participants.kickParticipant, { sessionToken, participantId });
+    const secondList = await t.query(api.participants.listParticipants, { sessionToken, eventId });
+    expect(secondList.find((p) => p.participantId === participantId)?.kickedAt).toBe(
+      firstKickedAt,
+    );
+  });
 });

@@ -10,6 +10,7 @@ import { PollBanner } from "../../components/PollBanner";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
 import { EventNotFound } from "../../components/EventNotFound";
+import { ParticipantRemoved } from "../../components/ParticipantRemoved";
 import { ReactionBar } from "../../components/ReactionBar";
 import { EmojiPicker } from "../../components/EmojiPicker";
 import { FlyingReactions } from "../../components/FlyingReactions";
@@ -31,6 +32,15 @@ export function ChatPage() {
   const participantForQuery = joinSlug ? getStoredParticipant(joinSlug) : null;
   const ownPendingOrRejected = useQuery(
     api.messages.listOwnPendingOrRejected,
+    info && participantForQuery
+      ? {
+          eventId: info.eventId,
+          participantId: participantForQuery.participantId as Id<"participants">,
+        }
+      : "skip",
+  );
+  const participantStatus = useQuery(
+    api.participants.getParticipantStatus,
     info && participantForQuery
       ? {
           eventId: info.eventId,
@@ -86,6 +96,9 @@ export function ChatPage() {
   }
   if (info.status === "ended") {
     return <main><EmptyState>This event has ended.</EmptyState></main>;
+  }
+  if (participantStatus?.kicked) {
+    return <ParticipantRemoved />;
   }
 
   async function handleSubmit(event: FormEvent) {

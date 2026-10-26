@@ -28,6 +28,9 @@ export default defineSchema({
     eventId: v.id("events"),
     displayName: v.string(),
     joinedAt: v.number(),
+    // Optional: participants that joined before this field existed have no
+    // `kickedAt` at all. `undefined` and `null` both mean "not kicked".
+    kickedAt: v.optional(v.union(v.number(), v.null())),
   }).index("by_event", ["eventId"]),
 
   messages: defineTable({

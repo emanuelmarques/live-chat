@@ -116,6 +116,16 @@ describe("messages", () => {
     ).rejects.toThrow();
   });
 
+  test("a kicked participant can no longer send messages", async () => {
+    const t = newTestInstance();
+    const { eventId, participantId, sessionToken } = await setupEventWithParticipant(t);
+    await t.mutation(api.participants.kickParticipant, { sessionToken, participantId });
+
+    await expect(
+      t.mutation(api.messages.sendMessage, { eventId, participantId, content: "Hello?" }),
+    ).rejects.toThrow(/Kicked/);
+  });
+
   test("a participant is rate-limited after sending too many messages quickly", async () => {
     const t = newTestInstance();
     const { eventId, participantId } = await setupEventWithParticipant(t);

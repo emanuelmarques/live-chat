@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery, api, type Id } from "../../../lib/convexClient";
+import { useQuery, useMutation, api, type Id } from "../../../lib/convexClient";
 import { getStoredSessionToken } from "../../../lib/session";
 import { EmptyState } from "../../../components/EmptyState";
 import { TextField } from "../../../components/TextField";
+import { Button } from "../../../components/Button";
 
 const AVATAR_COLORS = ["#f4b73f", "#9cd6b8", "#e8a0c0", "#a9b8ff", "#f3eee3", "#ffb38a"];
 
@@ -18,10 +19,18 @@ export function ParticipantsPage() {
   const eventId = eventIdParam as Id<"events">;
   const sessionToken = getStoredSessionToken() ?? "";
   const participants = useQuery(api.participants.listParticipants, { sessionToken, eventId });
+  const kickParticipant = useMutation(api.participants.kickParticipant);
   const [filter, setFilter] = useState("");
 
   if (!eventIdParam) {
     return null;
+  }
+
+  async function handleKick(participantId: Id<"participants">, displayName: string) {
+    if (!window.confirm(`Remove ${displayName} from this event? They won't be able to post, react, or vote again.`)) {
+      return;
+    }
+    await kickParticipant({ sessionToken, participantId });
   }
 
   const visible = participants?.filter((p) =>
@@ -70,6 +79,19 @@ export function ParticipantsPage() {
                   joined{" "}
                   {new Date(p.joinedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>
+                {p.kickedAt ? (
+                  <span className="badge badge--quiet" style={{ marginLeft: 0 }}>
+                    Removed
+                  </span>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    onClick={() => handleKick(p.participantId, p.displayName)}
+                  >
+                    Kick
+                  </Button>
+                )}
               </li>
             ))}
           </ul>

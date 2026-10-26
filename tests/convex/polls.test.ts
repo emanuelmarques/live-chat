@@ -78,6 +78,23 @@ describe("polls", () => {
     ).rejects.toThrow();
   });
 
+  test("a kicked participant can no longer vote", async () => {
+    const t = newTestInstance();
+    const { eventId, sessionToken, participantA } = await setupEventWithTwoParticipants(t);
+    const { pollId } = await t.mutation(api.polls.createAndStartPoll, {
+      sessionToken,
+      eventId,
+      question: "Q?",
+      options: ["A", "B"],
+      revealMode: "live",
+    });
+    await t.mutation(api.participants.kickParticipant, { sessionToken, participantId: participantA });
+
+    await expect(
+      t.mutation(api.polls.castVote, { pollId, participantId: participantA, optionIndex: 0 }),
+    ).rejects.toThrow(/Kicked/);
+  });
+
   test("live reveal mode shows counts immediately as votes come in", async () => {
     const t = newTestInstance();
     const { eventId, sessionToken, participantA, participantB } =

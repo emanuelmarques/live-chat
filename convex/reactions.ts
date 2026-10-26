@@ -52,6 +52,9 @@ export const sendReaction = mutation({
     if (participant === null || participant.eventId !== eventId) {
       throw new Error("Participant not found for this event.");
     }
+    if (participant.kickedAt) {
+      throw new Error("Kicked: you've been removed from this event by the moderator.");
+    }
     await assertUnderRateLimit(ctx, participantId);
 
     const reactionId = await ctx.db.insert("reactions", {

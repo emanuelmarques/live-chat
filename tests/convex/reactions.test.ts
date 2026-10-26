@@ -12,7 +12,7 @@ async function setupEventWithParticipant(t: ReturnType<typeof newTestInstance>) 
     eventId,
     displayName: "Ana",
   });
-  return { eventId, participantId };
+  return { eventId, participantId, sessionToken };
 }
 
 describe("reactions", () => {
@@ -49,6 +49,16 @@ describe("reactions", () => {
     await expect(
       t.mutation(api.reactions.sendReaction, { eventId, participantId, emoji: "👍" }),
     ).rejects.toThrow("This event has ended.");
+  });
+
+  test("a kicked participant can no longer send reactions", async () => {
+    const t = newTestInstance();
+    const { eventId, participantId, sessionToken } = await setupEventWithParticipant(t);
+    await t.mutation(api.participants.kickParticipant, { sessionToken, participantId });
+
+    await expect(
+      t.mutation(api.reactions.sendReaction, { eventId, participantId, emoji: "👍" }),
+    ).rejects.toThrow(/Kicked/);
   });
 
   test("rate-limits a participant sending reactions too quickly", async () => {

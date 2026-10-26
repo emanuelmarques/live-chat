@@ -28,6 +28,7 @@ export const listParticipants = query({
       participantId: p._id,
       displayName: p.displayName,
       joinedAt: p.joinedAt,
+      kickedAt: p.kickedAt,
     }));
   },
 });
@@ -47,7 +48,36 @@ export const joinEvent = mutation({
       eventId,
       displayName: trimmedName,
       joinedAt: Date.now(),
+      kickedAt: null,
     });
     return { participantId };
+  },
+});
+
+/** Moderator-only: removes a participant from the event — they can no longer post, react, or vote. */
+export const kickParticipant = mutation({
+  args: { sessionToken: v.string(), participantId: v.id("participants") },
+  handler: async (ctx, { sessionToken, participantId }) => {
+    await requireModerator(ctx, sessionToken);
+    const participant = await ctx.db.get(participantId);
+    if (participant === null) {
+      throw new Error("Participant not found.");
+    }
+    if (!participant.kickedAt) {
+      await ctx.db.patch(participantId, { kickedAt: Date.now() });
+    }
+    return {};
+  },
+});
+
+/** Public: lets a participant's own client detect it has been kicked, so it can stop posting. */
+export const getParticipantStatus = query({
+  args: { eventId: v.id("events"), participantId: v.id("participants") },
+  handler: async (ctx, { eventId, participantId }) => {
+    const participant = await ctx.db.get(participantId);
+    if (participant === null || participant.eventId !== eventId) {
+      return null;
+    }
+    return { kicked: Boolean(participant.kickedAt) };
   },
 });

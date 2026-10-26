@@ -51,6 +51,10 @@ export const castVote = mutation({
     if (optionIndex < 0 || optionIndex >= poll.options.length) {
       throw new Error("Invalid option.");
     }
+    const participant = await ctx.db.get(participantId);
+    if (participant !== null && participant.kickedAt) {
+      throw new Error("Kicked: you've been removed from this event by the moderator.");
+    }
     const existing = await ctx.db
       .query("pollVotes")
       .withIndex("by_poll_participant", (q) =>

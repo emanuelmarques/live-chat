@@ -332,6 +332,50 @@ textarea:focus-visible {
   letter-spacing: -0.02em;
 }
 
+.removed {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem 1.5rem;
+}
+
+.removed__mark {
+  width: clamp(72px, 16vw, 96px);
+  aspect-ratio: 1;
+  margin-bottom: 1.5rem;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  /* --live-text, not --live: same hue, darker, clears the paper-icon contrast (see .btn--primary). */
+  background: var(--live-text);
+  color: var(--paper);
+  box-shadow: 0 5px 0 var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: clamp(1.8rem, 6vw, 2.5rem);
+  line-height: 1;
+}
+
+.removed__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.8rem, 7vw, 2.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.removed__lede {
+  margin: 0.85rem 0 0;
+  max-width: 320px;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
 /* ---------- chat ---------- */
 
 .chat {
