@@ -66,10 +66,13 @@ export function ProjectorPage() {
   }
 
   const joinUrl = `${window.location.origin}/join/${joinSlug}`;
+  const pollActive = !!(activePoll && activePoll.isActive);
+  // Nothing to show yet: make the join QR code the centrepiece.
+  const showWelcome = info.status !== "ended" && messages.length === 0 && !highlighted && !pollActive;
 
   return (
     <div
-      className={`projector${activePoll && activePoll.isActive ? " projector--poll" : ""}`}
+      className={`projector${pollActive ? " projector--poll" : ""}${showWelcome ? " projector--welcome" : ""}`}
       data-theme={theme}
     >
       <FlyingReactions flights={flights} />
@@ -94,6 +97,21 @@ export function ProjectorPage() {
         </header>
         {info.status === "ended" ? (
           <p style={{ fontSize: "2rem" }}>This event has ended.</p>
+        ) : showWelcome ? (
+          <section className="welcome" aria-label="How to join">
+            <div className="welcome__qr">
+              <QrCode value={joinUrl} size={900} />
+            </div>
+            <div className="welcome__text">
+              <p className="welcome__scan">Scan to join the chat</p>
+              <p className="welcome__or mono-label">or go to</p>
+              <p className="welcome__host">{window.location.host}</p>
+              <p className="welcome__or mono-label">and enter the code</p>
+              <p className="welcome__code" aria-label={`Event code ${joinSlug.split("").join(" ")}`}>
+                {joinSlug.toUpperCase().replace(/(.{3})(?=.)/g, "$1 ")}
+              </p>
+            </div>
+          </section>
         ) : (
           <>
           {highlighted && (
@@ -110,7 +128,7 @@ export function ProjectorPage() {
         )}
       </section>
 
-      {info.status !== "ended" && (
+      {info.status !== "ended" && !showWelcome && (
         <aside className="projector__side">
           {activePoll && activePoll.isActive && <PollBanner poll={activePoll} />}
           <section className="join-card" aria-label="How to join">

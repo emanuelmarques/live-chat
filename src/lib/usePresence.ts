@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, api, type Id } from "./convexClient";
 
 const HEARTBEAT_INTERVAL_MS = 60_000;
-const COUNT_REFRESH_INTERVAL_MS = 30_000;
+const COUNT_REFRESH_INTERVAL_MS = 5_000;
 
 /** Tells the server this participant is still in the chat (only while the tab is visible). */
 export function useHeartbeat(eventId: Id<"events"> | undefined, participantId: string | undefined) {
