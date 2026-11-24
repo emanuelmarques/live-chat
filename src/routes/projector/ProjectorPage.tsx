@@ -4,6 +4,7 @@ import { useQuery, api } from "../../lib/convexClient";
 import { useReactionFlights } from "../../lib/useReactionFlights";
 import { usePagedMessages } from "../../lib/usePagedMessages";
 import { useMessageReactions } from "../../lib/useMessageReactions";
+import { useActiveParticipantCount } from "../../lib/usePresence";
 import { MessageList } from "../../components/MessageList";
 import { PollBanner } from "../../components/PollBanner";
 import { EmptyState } from "../../components/EmptyState";
@@ -50,10 +51,7 @@ export function ProjectorPage() {
   );
   const reactions = useQuery(api.reactions.listRecentReactions, info ? { eventId: info.eventId } : "skip");
   const activePoll = useQuery(api.polls.getActivePoll, info ? { eventId: info.eventId } : "skip");
-  const participantCount = useQuery(
-    api.participants.countParticipants,
-    info ? { eventId: info.eventId } : "skip",
-  );
+  const participantCount = useActiveParticipantCount(info?.eventId);
   const flights = useReactionFlights(reactions ?? []);
 
   if (!joinSlug) {

@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { RouteGuard } from "./RouteGuard";
 import { useQuery, useMutation, api, type Id } from "../../lib/convexClient";
+import { useActiveParticipantCount } from "../../lib/usePresence";
 import { clearSessionToken, getStoredSessionToken } from "../../lib/session";
 
 const linkClass = ({ isActive }: { isActive: boolean }) => (isActive ? "active" : undefined);
@@ -10,7 +11,7 @@ function EventNav({ eventId }: { eventId: Id<"events"> }) {
   const event = useQuery(api.events.getEvent, { eventId });
   const pending = useQuery(api.moderation.listPending, { sessionToken, eventId });
   const activePoll = useQuery(api.polls.getActivePoll, { eventId });
-  const participantCount = useQuery(api.participants.countParticipants, { eventId });
+  const participantCount = useActiveParticipantCount(eventId);
   const endEvent = useMutation(api.events.endEvent);
 
   const live = event?.status === "active";
@@ -29,6 +30,14 @@ function EventNav({ eventId }: { eventId: Id<"events"> }) {
           {event ? (live ? "● Live" : "Ended") : "…"}
         </div>
         <div className="admin__event-name">{event?.name ?? "Loading…"}</div>
+        <div
+          role="status"
+          className="mono-label"
+          style={{ marginTop: 6, color: "#a39a8b" }}
+          aria-label={`${participantCount ?? 0} in the chat now`}
+        >
+          👥 {participantCount ?? "…"} in the chat
+        </div>
       </div>
 
       <NavLink to={`/admin/events/${eventId}/moderation`} className={linkClass}>
@@ -52,11 +61,6 @@ function EventNav({ eventId }: { eventId: Id<"events"> }) {
       </NavLink>
       <NavLink to={`/admin/events/${eventId}/participants`} className={linkClass}>
         Participants
-        {participantCount !== undefined && participantCount > 0 && (
-          <span className="badge badge--quiet" aria-label={`${participantCount} joined`}>
-            {participantCount}
-          </span>
-        )}
       </NavLink>
       <NavLink to={`/admin/events/${eventId}/export`} className={linkClass}>
         Export

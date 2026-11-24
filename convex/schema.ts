@@ -45,6 +45,17 @@ export default defineSchema({
     publicKey: v.optional(v.string()),
   }).index("by_event", ["eventId"]),
 
+  // Who is actually in the chat right now: one row per participant, refreshed by
+  // a client heartbeat. Kept apart from `participants` so heartbeats don't
+  // invalidate the participant list queries.
+  presence: defineTable({
+    eventId: v.id("events"),
+    participantId: v.id("participants"),
+    lastSeenAt: v.number(),
+  })
+    .index("by_participant", ["participantId"])
+    .index("by_event_lastSeenAt", ["eventId", "lastSeenAt"]),
+
   messages: defineTable({
     eventId: v.id("events"),
     participantId: v.id("participants"),

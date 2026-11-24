@@ -48,6 +48,33 @@ describe("participants", () => {
     expect(await t.query(api.participants.countParticipants, { eventId: b.eventId })).toBe(1);
   });
 
+  test("countActiveParticipants only counts people seen in the last 3 minutes", async () => {
+    const t = newTestInstance();
+    const sessionToken = await createModeratorSession(t);
+    const { eventId } = await t.mutation(api.events.createEvent, { sessionToken, name: "A" });
+    const ana = await t.mutation(api.participants.joinEvent, { eventId, displayName: "Ana" });
+    await t.mutation(api.participants.joinEvent, { eventId, displayName: "Rui" });
+    expect(await t.query(api.participants.countActiveParticipants, { eventId })).toBe(2);
+
+    // Rui goes quiet for 4 minutes; Ana keeps sending heartbeats.
+    const realNow = Date.now;
+    Date.now = () => realNow() + 4 * 60 * 1000;
+    try {
+      expect(await t.query(api.participants.countActiveParticipants, { eventId })).toBe(0);
+      await t.mutation(api.participants.heartbeat, { eventId, participantId: ana.participantId });
+      expect(await t.query(api.participants.countActiveParticipants, { eventId })).toBe(1);
+
+      // A kicked participant stops counting right away.
+      await t.mutation(api.participants.kickParticipant, {
+        sessionToken,
+        participantId: ana.participantId,
+      });
+      expect(await t.query(api.participants.countActiveParticipants, { eventId })).toBe(0);
+    } finally {
+      Date.now = realNow;
+    }
+  });
+
   test("listParticipants requires a moderator session and is scoped to the event", async () => {
     const t = newTestInstance();
     const sessionToken = await createModeratorSession(t);

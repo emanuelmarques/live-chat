@@ -9,6 +9,7 @@ import { useReactionFlights } from "../../lib/useReactionFlights";
 import { usePagedMessages } from "../../lib/usePagedMessages";
 import { useMessageReactions } from "../../lib/useMessageReactions";
 import { useChatScroll } from "../../lib/useChatScroll";
+import { useHeartbeat } from "../../lib/usePresence";
 import { MessageList, type MessageRow } from "../../components/MessageList";
 import { LoadOlderMessages } from "../../components/LoadOlderMessages";
 import { PollBanner } from "../../components/PollBanner";
@@ -67,6 +68,7 @@ export function ChatPage() {
   const castVote = useMutation(api.polls.castVote);
 
   const flights = useReactionFlights(reactions ?? []);
+  useHeartbeat(info?.eventId, participantForQuery?.participantId);
   const {
     inputRef,
     suggestions,

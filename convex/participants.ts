@@ -1,4 +1,5 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { requireModerator } from "./lib/requireModerator";
 import { MAX_DISPLAY_NAME_LENGTH, assertMaxLength } from "./lib/limits";
@@ -15,6 +16,57 @@ export const countParticipants = query({
     return participants.length;
   },
 });
+
+/** A participant counts as "in the chat" if seen within this window. */
+const PRESENCE_WINDOW_MS = 3 * 60 * 1000;
+
+/**
+ * Public: how many people are actually in the chat — those seen (joined or
+ * heartbeat) in the last 3 minutes. `refreshKey` is ignored by the handler; the
+ * client bumps it periodically so the query re-runs and the window slides even
+ * when nobody writes (Convex freezes Date.now() per execution).
+ */
+export const countActiveParticipants = query({
+  args: { eventId: v.id("events"), refreshKey: v.optional(v.number()) },
+  handler: async (ctx, { eventId }) => {
+    const since = Date.now() - PRESENCE_WINDOW_MS;
+    const active = await ctx.db
+      .query("presence")
+      .withIndex("by_event_lastSeenAt", (q) => q.eq("eventId", eventId).gte("lastSeenAt", since))
+      .collect();
+    return active.length;
+  },
+});
+
+/** Public: a participant's client reports it is still in the chat. */
+export const heartbeat = mutation({
+  args: { eventId: v.id("events"), participantId: v.id("participants") },
+  handler: async (ctx, { eventId, participantId }) => {
+    const participant = await ctx.db.get(participantId);
+    if (participant === null || participant.eventId !== eventId || participant.kickedAt) {
+      return {};
+    }
+    await upsertPresence(ctx, eventId, participantId);
+    return {};
+  },
+});
+
+async function upsertPresence(
+  ctx: MutationCtx,
+  eventId: Id<"events">,
+  participantId: Id<"participants">,
+) {
+  const now = Date.now();
+  const existing = await ctx.db
+    .query("presence")
+    .withIndex("by_participant", (q) => q.eq("participantId", participantId))
+    .unique();
+  if (existing) {
+    await ctx.db.patch(existing._id, { lastSeenAt: now });
+  } else {
+    await ctx.db.insert("presence", { eventId, participantId, lastSeenAt: now });
+  }
+}
 
 /** Moderator-only: everyone who joined the event, most recent first. */
 export const listParticipants = query({
@@ -54,6 +106,7 @@ export const joinEvent = mutation({
       kickedAt: null,
       publicKey: crypto.randomUUID(),
     });
+    await upsertPresence(ctx, eventId, participantId);
     return { participantId };
   },
 });
@@ -70,6 +123,11 @@ export const kickParticipant = mutation({
     if (!participant.kickedAt) {
       await ctx.db.patch(participantId, { kickedAt: Date.now() });
     }
+    const presence = await ctx.db
+      .query("presence")
+      .withIndex("by_participant", (q) => q.eq("participantId", participantId))
+      .unique();
+    if (presence) await ctx.db.delete(presence._id);
     return {};
   },
 });
