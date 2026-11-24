@@ -630,38 +630,43 @@ textarea:focus-visible {
 
 .chat__quick-actions {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.25rem;
   margin-bottom: 0.4rem;
 }
 
-.reaction-trigger {
-  position: relative;
-}
-
-/* Labeled, not icon-only — a tap here is visibly "send a reaction", not
-   just another chrome button. */
-.reaction-trigger__button {
+/* Always-visible one-tap reactions. Items share the width equally so all nine
+   fit on a narrow phone; scrolls sideways as a fallback on very small screens. */
+.reaction-bar {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  height: 40px;
-  padding: 0 0.9rem 0 0.7rem;
+  gap: 2px;
+  padding: 3px;
   border: 2px solid var(--ink);
   border-radius: 999px;
   background: var(--card);
-  font: inherit;
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--ink);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.reaction-trigger__button:hover {
+.reaction-bar__item {
+  flex: 1 0 34px;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font-size: 1.3rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reaction-bar__item:hover:not(:disabled) {
   background: var(--sand);
 }
 
-.reaction-trigger__icon {
-  font-size: 1.15rem;
+.reaction-bar__item:active:not(:disabled) {
+  transform: scale(1.2);
 }
 
 .reaction-error {
@@ -672,10 +677,12 @@ textarea:focus-visible {
 .reaction-popover {
   flex-wrap: wrap;
   max-width: min(320px, calc(100vw - 2rem));
-  position: absolute;
-  bottom: calc(100% + 0.5rem);
+  /* Fixed + positioned in JS (usePopoverPlacement) so it flips above/below and
+     stays inside the viewport instead of being clipped by scroll containers. */
+  position: fixed;
+  top: 0;
   left: 0;
-  z-index: 20;
+  z-index: 50;
   display: flex;
   gap: 0.15rem;
   padding: 0.4rem;
@@ -1101,18 +1108,6 @@ button.msg-reactions__chip {
 
 .msg-reactions__add {
   position: relative;
-}
-
-.msg-reactions__popover {
-  bottom: calc(100% + 4px);
-  top: auto;
-  left: 0;
-  right: auto;
-}
-
-.msg--own .msg-reactions__popover {
-  left: auto;
-  right: 0;
 }
 
 .pending {

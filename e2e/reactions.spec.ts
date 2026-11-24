@@ -28,8 +28,7 @@ test.describe("Zoom-style flying reactions", () => {
 
     await projector.goto(`/projector/${joinSlug}`);
 
-    await sender.getByRole("button", { name: "React" }).click();
-    await sender.getByRole("menuitem", { name: "🎉" }).click();
+    await sender.getByRole("button", { name: "Send reaction 🎉" }).click();
 
     await expect(watcher.locator(".reaction-fly").filter({ hasText: "🎉" })).toBeVisible({
       timeout: 5000,
@@ -75,7 +74,7 @@ test.describe("Emoji picker and Slack-style shortcodes", () => {
     await expect(composer).toHaveValue("so hyped 🔥");
   });
 
-  test("the reaction popover and the emoji picker are each free of automated accessibility violations when open", async ({
+  test("the reaction bar and the emoji picker are each free of automated accessibility violations", async ({
     page,
   }) => {
     const client = newConvexClient();
@@ -86,11 +85,9 @@ test.describe("Emoji picker and Slack-style shortcodes", () => {
     await page.getByLabel("Your name").fill("A11y Person");
     await page.getByRole("button", { name: "Join chat" }).click();
 
-    await page.getByRole("button", { name: "React" }).click();
-    await expect(page.getByRole("menu", { name: "Reactions" })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Send a reaction" })).toBeVisible();
     const reactionScan = await new AxeBuilder({ page }).analyze();
     expect(reactionScan.violations).toEqual([]);
-    await page.keyboard.press("Escape");
 
     await page.getByRole("button", { name: "Add an emoji" }).click();
     await expect(page.getByRole("dialog", { name: "Emoji picker" })).toBeVisible();

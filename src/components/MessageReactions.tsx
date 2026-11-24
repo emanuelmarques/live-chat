@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { QUICK_REACTIONS } from "../lib/reactions";
 import { useDismissablePopover } from "../lib/useDismissablePopover";
+import { usePopoverPlacement } from "../lib/usePopoverPlacement";
 
 export interface MessageReaction {
   emoji: string;
@@ -18,7 +19,10 @@ interface MessageReactionsProps {
 export function MessageReactions({ reactions, onToggle }: MessageReactionsProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   useDismissablePopover(containerRef, open, () => setOpen(false));
+  const placement = usePopoverPlacement(triggerRef, popoverRef, open);
 
   if (reactions.length === 0 && !onToggle) return null;
 
@@ -46,6 +50,7 @@ export function MessageReactions({ reactions, onToggle }: MessageReactionsProps)
       {onToggle && (
         <span className="msg-reactions__add">
           <button
+            ref={triggerRef}
             type="button"
             className="msg-reactions__chip msg-reactions__chip--add"
             aria-haspopup="true"
@@ -56,7 +61,13 @@ export function MessageReactions({ reactions, onToggle }: MessageReactionsProps)
             + 😊
           </button>
           {open && (
-            <div className="reaction-popover msg-reactions__popover" role="menu" aria-label="React to message">
+            <div
+              className="reaction-popover"
+              role="menu"
+              aria-label="React to message"
+              ref={popoverRef}
+              style={placement}
+            >
               {QUICK_REACTIONS.map((emoji) => (
                 <button
                   key={emoji}
