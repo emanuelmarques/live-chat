@@ -84,3 +84,49 @@ export const rejectMessage = mutation({
     return {};
   },
 });
+
+/** Removes any message from the chat for everyone (not only its author). */
+export const deleteMessageAsModerator = mutation({
+  args: { sessionToken: v.string(), messageId: v.id("messages") },
+  handler: async (ctx, { sessionToken, messageId }) => {
+    await requireModerator(ctx, sessionToken);
+    const message = await ctx.db.get(messageId);
+    if (message === null) {
+      throw new Error("Message not found.");
+    }
+    if (message.deletedAt === null) {
+      await ctx.db.patch(messageId, { deletedAt: Date.now() });
+    }
+    const event = await ctx.db.get(message.eventId);
+    if (event?.highlightedMessageId === messageId) {
+      await ctx.db.patch(event._id, { highlightedMessageId: null });
+    }
+    return {};
+  },
+});
+
+/** Pins a message to the top of the projector. Replaces any previous highlight. */
+export const highlightMessage = mutation({
+  args: { sessionToken: v.string(), messageId: v.id("messages") },
+  handler: async (ctx, { sessionToken, messageId }) => {
+    await requireModerator(ctx, sessionToken);
+    const message = await ctx.db.get(messageId);
+    if (message === null) {
+      throw new Error("Message not found.");
+    }
+    if (message.deletedAt !== null || message.moderationStatus !== "visible") {
+      throw new Error("Only a visible message can be highlighted.");
+    }
+    await ctx.db.patch(message.eventId, { highlightedMessageId: messageId });
+    return {};
+  },
+});
+
+export const clearHighlight = mutation({
+  args: { sessionToken: v.string(), eventId: v.id("events") },
+  handler: async (ctx, { sessionToken, eventId }) => {
+    await requireModerator(ctx, sessionToken);
+    await ctx.db.patch(eventId, { highlightedMessageId: null });
+    return {};
+  },
+});

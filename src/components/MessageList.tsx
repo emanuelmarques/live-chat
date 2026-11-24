@@ -16,6 +16,11 @@ interface MessageListProps {
   onToggleReaction?: (messageId: string, emoji: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (message: MessageRow) => void;
+  /** Moderator mode: show Delete on every message, not only the viewer's own. */
+  canDeleteAny?: boolean;
+  /** Moderator mode: pin/unpin a message on the projector. */
+  onToggleHighlight?: (message: MessageRow) => void;
+  highlightedMessageId?: string | null;
 }
 
 const AVATAR_COLORS = ["#f4b73f", "#9cd6b8", "#e8a0c0", "#a9b8ff", "#f3eee3", "#ffb38a"];
@@ -36,13 +41,21 @@ export function MessageList({
   onToggleReaction,
   onDelete,
   onReply,
+  canDeleteAny,
+  onToggleHighlight,
+  highlightedMessageId,
 }: MessageListProps) {
   return (
     <ul className="msgs" aria-live="polite" aria-relevant="additions">
       {messages.map((message) => {
         const isOwn = message.participantId === currentParticipantId;
+        const isHighlighted = message.messageId === highlightedMessageId;
+        const canDelete = onDelete && (isOwn || canDeleteAny);
         return (
-          <li key={message.messageId} className={`msg${isOwn ? " msg--own" : ""}`}>
+          <li
+            key={message.messageId}
+            className={`msg${isOwn ? " msg--own" : ""}${isHighlighted ? " msg--highlighted" : ""}`}
+          >
             <span
               aria-hidden="true"
               className="avatar"
@@ -53,6 +66,7 @@ export function MessageList({
             <div className="msg__body">
               <div className="msg__meta">
                 <strong className="msg__name">{message.authorDisplayName}</strong> · {formatTime(message.sentAt)}
+                {isHighlighted && <span className="msg__pin"> · ★ On projector</span>}
               </div>
               <div className="bubble">
                 {message.replyTo && (
@@ -69,14 +83,19 @@ export function MessageList({
                 currentParticipantId={currentParticipantId}
                 onToggle={onToggleReaction ? (emoji) => onToggleReaction(message.messageId, emoji) : undefined}
               />
-              {(onReply || (onDelete && isOwn)) && (
+              {(onReply || onToggleHighlight || canDelete) && (
                 <div className="msg__actions">
                   {onReply && (
                     <button type="button" onClick={() => onReply(message)}>
                       Reply
                     </button>
                   )}
-                  {onDelete && isOwn && (
+                  {onToggleHighlight && (
+                    <button type="button" aria-pressed={isHighlighted} onClick={() => onToggleHighlight(message)}>
+                      {isHighlighted ? "Remove highlight" : "Highlight"}
+                    </button>
+                  )}
+                  {canDelete && (
                     <button type="button" className="danger" onClick={() => onDelete(message.messageId)}>
                       Delete
                     </button>

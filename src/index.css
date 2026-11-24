@@ -2198,3 +2198,60 @@ button.poll__option:disabled {
     }
   }
 }
+
+/* Projector: pinned discussion topic above the chat feed. */
+.projector__highlight {
+  margin-top: 1.75rem;
+  padding: 1.75rem 2.25rem;
+  border: 4px solid var(--live);
+  border-radius: 24px;
+  background: var(--pj-quote-bg);
+}
+
+.projector__highlight-label {
+  margin: 0 0 0.75rem;
+  color: var(--live);
+}
+
+.projector__highlight-text {
+  margin: 0;
+  font-size: clamp(2.5rem, 3.4vw, 4rem);
+  line-height: 1.2;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.projector__highlight-author {
+  margin: 0.9rem 0 0;
+  font-size: 1.5rem;
+  color: var(--pj-muted);
+}
+
+/* Moderator chat view: reuses the participant chat styles inside the admin shell. */
+.chat.chat--admin {
+  height: auto;
+  display: block;
+}
+
+.chat--admin__hint {
+  margin: 0 0 1rem;
+  color: var(--muted);
+}
+
+.chat--admin .chat__scroll {
+  max-height: calc(100dvh - 11rem);
+  padding: 0.875rem 0.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  background: var(--paper);
+}
+
+.msg--highlighted .bubble {
+  border-color: var(--live);
+  box-shadow: 0 0 0 2px var(--live);
+}
+
+.msg__pin {
+  color: var(--live-text);
+  font-weight: 600;
+}

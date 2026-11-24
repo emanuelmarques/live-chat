@@ -40,6 +40,10 @@ export function ProjectorPage() {
 
   const info = useQuery(api.events.getJoinInfo, joinSlug ? { joinSlug } : "skip");
   const messages = useQuery(api.messages.listMessages, info ? { eventId: info.eventId } : "skip");
+  const highlighted = useQuery(
+    api.messages.getHighlightedMessage,
+    info ? { eventId: info.eventId } : "skip",
+  );
   const reactions = useQuery(api.reactions.listRecentReactions, info ? { eventId: info.eventId } : "skip");
   const activePoll = useQuery(api.polls.getActivePoll, info ? { eventId: info.eventId } : "skip");
   const participantCount = useQuery(
@@ -88,9 +92,18 @@ export function ProjectorPage() {
         {info.status === "ended" ? (
           <p style={{ fontSize: "2rem" }}>This event has ended.</p>
         ) : (
+          <>
+          {highlighted && (
+            <section className="projector__highlight" aria-label="Discussion topic">
+              <p className="projector__highlight-label mono-label">Discussion topic</p>
+              <p className="projector__highlight-text">{highlighted.content}</p>
+              <p className="projector__highlight-author">— {highlighted.authorDisplayName}</p>
+            </section>
+          )}
           <div className="projector__feed">
             <MessageList messages={messages} />
           </div>
+          </>
         )}
       </section>
 

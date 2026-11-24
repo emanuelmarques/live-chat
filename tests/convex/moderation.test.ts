@@ -109,3 +109,54 @@ describe("moderation", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("moderator chat view: delete and highlight", () => {
+  async function chatSetup() {
+    const t = newTestInstance();
+    const sessionToken = await createModeratorSession(t);
+    const { eventId } = await t.mutation(api.events.createEvent, { sessionToken, name: "Live" });
+    const { participantId } = await t.mutation(api.participants.joinEvent, { eventId, displayName: "Ana" });
+    const send = async (content: string) =>
+      (await t.mutation(api.messages.sendMessage, { eventId, participantId, content })).messageId;
+    return { t, sessionToken, eventId, send };
+  }
+
+  test("highlight shows on the projector query without touching the participant chat", async () => {
+    const { t, sessionToken, eventId, send } = await chatSetup();
+    const a = await send("first");
+    const b = await send("second");
+
+    await t.mutation(api.moderation.highlightMessage, { sessionToken, messageId: a });
+    await t.mutation(api.moderation.highlightMessage, { sessionToken, messageId: b });
+
+    const highlighted = await t.query(api.messages.getHighlightedMessage, { eventId });
+    expect(highlighted?.messageId).toBe(b);
+    const chat = await t.query(api.messages.listMessages, { eventId });
+    expect(chat.map((m) => m.content)).toEqual(["first", "second"]);
+
+    await t.mutation(api.moderation.clearHighlight, { sessionToken, eventId });
+    expect(await t.query(api.messages.getHighlightedMessage, { eventId })).toBeNull();
+  });
+
+  test("moderator can delete any message, which also clears its highlight", async () => {
+    const { t, sessionToken, eventId, send } = await chatSetup();
+    const a = await send("bad");
+    await t.mutation(api.moderation.highlightMessage, { sessionToken, messageId: a });
+    await t.mutation(api.moderation.deleteMessageAsModerator, { sessionToken, messageId: a });
+
+    expect(await t.query(api.messages.listMessages, { eventId })).toHaveLength(0);
+    expect(await t.query(api.messages.getHighlightedMessage, { eventId })).toBeNull();
+  });
+
+  test("requires a moderator session and a visible message", async () => {
+    const { t, sessionToken, send } = await chatSetup();
+    const a = await send("hi");
+    await expect(
+      t.mutation(api.moderation.highlightMessage, { sessionToken: "nope", messageId: a }),
+    ).rejects.toThrow();
+    await t.mutation(api.moderation.deleteMessageAsModerator, { sessionToken, messageId: a });
+    await expect(
+      t.mutation(api.moderation.highlightMessage, { sessionToken, messageId: a }),
+    ).rejects.toThrow(/visible/);
+  });
+});

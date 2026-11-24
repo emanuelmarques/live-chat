@@ -39,6 +39,9 @@ function EventNav({ eventId }: { eventId: Id<"events"> }) {
           </span>
         )}
       </NavLink>
+      <NavLink to={`/admin/events/${eventId}/chat`} className={linkClass}>
+        Chat
+      </NavLink>
       <NavLink to={`/admin/events/${eventId}/polls`} className={linkClass}>
         Polls
         {pollLive && (

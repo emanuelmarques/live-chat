@@ -151,6 +151,24 @@ export const listMessages = query({
 });
 
 /**
+ * The message the moderator pinned as a discussion topic, shown only on the
+ * projector. Participants' chat view (`listMessages`) is unaffected.
+ */
+export const getHighlightedMessage = query({
+  args: { eventId: v.id("events") },
+  handler: async (ctx, { eventId }) => {
+    const event = await ctx.db.get(eventId);
+    const id = event?.highlightedMessageId;
+    if (!id) return null;
+    const m = await ctx.db.get(id);
+    if (m === null || m.deletedAt !== null || m.moderationStatus !== "visible") {
+      return null;
+    }
+    return { messageId: m._id, authorDisplayName: m.authorDisplayName, content: m.content };
+  },
+});
+
+/**
  * A participant's own non-visible messages (pending/rejected), so their own
  * client can render "awaiting approval" / "not approved" — nobody else can see
  * these (FR-012).

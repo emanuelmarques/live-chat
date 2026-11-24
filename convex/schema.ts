@@ -9,6 +9,9 @@ export default defineSchema({
     createdAt: v.number(),
     endedAt: v.union(v.number(), v.null()),
     activePollId: v.union(v.id("polls"), v.null()),
+    // Message pinned to the top of the projector as a discussion topic.
+    // Optional: events created before this field existed have none.
+    highlightedMessageId: v.optional(v.union(v.id("messages"), v.null())),
   }).index("by_slug", ["joinSlug"]),
 
   moderators: defineTable({

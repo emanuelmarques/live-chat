@@ -8,6 +8,7 @@ import { AdminLoginPage } from "./routes/admin/login/AdminLoginPage";
 import { AdminLayout } from "./routes/admin/AdminLayout";
 import { EventsPage } from "./routes/admin/events/EventsPage";
 import { ModerationPage } from "./routes/admin/moderation/ModerationPage";
+import { ChatViewPage } from "./routes/admin/chat/ChatViewPage";
 import { PollsPage } from "./routes/admin/polls/PollsPage";
 import { ExportPage } from "./routes/admin/export/ExportPage";
 import { ParticipantsPage } from "./routes/admin/participants/ParticipantsPage";
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="events" element={<EventsPage />} />
           <Route path="events/:eventId" element={<Navigate to="moderation" replace />} />
           <Route path="events/:eventId/moderation" element={<ModerationPage />} />
+          <Route path="events/:eventId/chat" element={<ChatViewPage />} />
           <Route path="events/:eventId/polls" element={<PollsPage />} />
           <Route path="events/:eventId/participants" element={<ParticipantsPage />} />
           <Route path="events/:eventId/export" element={<ExportPage />} />
