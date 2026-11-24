@@ -2255,3 +2255,32 @@ button.poll__option:disabled {
   color: var(--live-text);
   font-weight: 600;
 }
+
+/* ---------- polls admin: card grid ---------- */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.polls-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+.polls-layout__side {
+  order: -1;
+}
+@media (min-width: 900px) {
+  .polls-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+  .polls-layout__side {
+    order: 0;
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+}

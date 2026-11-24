@@ -1,20 +1,33 @@
 import { useQuery, api, type Id } from "../../../lib/convexClient";
+import { Button } from "../../../components/Button";
 import { getStoredSessionToken } from "../../../lib/session";
 
 function formatTime(ms: number | null) {
   return ms === null ? "—" : new Date(ms).toLocaleString();
 }
 
-export function PollHistory({ eventId }: { eventId: Id<"events"> }) {
+export type ClonedPoll = {
+  question: string;
+  options: string[];
+  revealMode: "live" | "atEnd";
+};
+
+export function PollHistory({
+  eventId,
+  onClone,
+}: {
+  eventId: Id<"events">;
+  onClone: (poll: ClonedPoll) => void;
+}) {
   const sessionToken = getStoredSessionToken() ?? "";
   const history = useQuery(api.polls.listPollHistory, { sessionToken, eventId });
 
   if (history === undefined) return <p role="status">Loading…</p>;
 
   return (
-    <div className="stack">
+    <div className="card-grid">
       {history.length === 0 ? (
-        <p style={{ margin: 0 }}>No polls have been run in this event yet.</p>
+        <p style={{ margin: 0, gridColumn: "1 / -1" }}>No polls have been run in this event yet.</p>
       ) : (
         history.map((poll) => {
           const top = Math.max(...poll.counts);
@@ -50,6 +63,20 @@ export function PollHistory({ eventId }: { eventId: Id<"events"> }) {
                   );
                 })}
               </ul>
+              <div className="row">
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    onClone({
+                      question: poll.question,
+                      options: poll.options,
+                      revealMode: poll.revealMode,
+                    })
+                  }
+                >
+                  Clone
+                </Button>
+              </div>
             </article>
           );
         })

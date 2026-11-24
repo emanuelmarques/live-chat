@@ -5,7 +5,7 @@ import { getStoredSessionToken } from "../../../lib/session";
 import { Button } from "../../../components/Button";
 import { TextField } from "../../../components/TextField";
 import { PollBanner } from "../../../components/PollBanner";
-import { PollHistory } from "./PollHistory";
+import { PollHistory, type ClonedPoll } from "./PollHistory";
 
 export function PollsPage() {
   const { eventId: eventIdParam } = useParams<{ eventId: string }>();
@@ -66,6 +66,12 @@ export function PollsPage() {
     resetForm();
   }
 
+  function handleClone(poll: ClonedPoll) {
+    setQuestion(poll.question);
+    setOptions(poll.options);
+    setRevealMode(poll.revealMode);
+  }
+
   async function handleSaveDraft() {
     const input = readForm();
     if (!input) return;
@@ -103,22 +109,24 @@ export function PollsPage() {
           No prepared polls yet. Save one as a draft to launch it quickly during the event.
         </p>
       ) : (
-        drafts.map((draft) => (
-          <div key={draft.pollId} className="card stack">
-            <strong>{draft.question}</strong>
-            <ul style={{ margin: 0 }}>
-              {draft.options.map((opt, i) => (
-                <li key={i}>{opt}</li>
-              ))}
-            </ul>
-            <div className="row" style={{ flexWrap: "wrap" }}>
-              <Button onClick={() => handleActivate(draft.pollId)}>Go live</Button>
-              <Button variant="secondary" onClick={() => handleDeleteDraft(draft.pollId)}>
-                Delete
-              </Button>
+        <div className="card-grid">
+          {drafts.map((draft) => (
+            <div key={draft.pollId} className="card stack">
+              <strong>{draft.question}</strong>
+              <ul style={{ margin: 0 }}>
+                {draft.options.map((opt, i) => (
+                  <li key={i}>{opt}</li>
+                ))}
+              </ul>
+              <div className="row" style={{ flexWrap: "wrap" }}>
+                <Button onClick={() => handleActivate(draft.pollId)}>Go live</Button>
+                <Button variant="secondary" onClick={() => handleDeleteDraft(draft.pollId)}>
+                  Delete
+                </Button>
+              </div>
             </div>
-          </div>
-        ))
+          ))}
+        </div>
       )}
     </section>
   );
@@ -146,105 +154,116 @@ export function PollsPage() {
 
   const eventLive = event?.status === "active";
 
-  return (
-    <div className="stack" style={{ maxWidth: 560 }}>
-      <h1 style={{ margin: 0 }}>Polls</h1>
-      <div role="tablist" aria-label="Polls sections" className="row">
+  const createForm = (
+    <form onSubmit={handleCreate} className="card card--lift stack">
+      <TextField
+        label="Question"
+        value={question}
+        onChange={(e) => setQuestion(e.target.value)}
+        required
+      />
+      {options.map((opt, i) => (
+        <TextField
+          key={i}
+          label={`Option ${i + 1}`}
+          value={opt}
+          onChange={(e) =>
+            setOptions((prev) => prev.map((o, idx) => (idx === i ? e.target.value : o)))
+          }
+        />
+      ))}
+      <div className="row">
+        {options.length < 6 && (
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={() => setOptions((prev) => [...prev, ""])}
+          >
+            + Add option
+          </button>
+        )}
+        {options.length > 2 && (
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={() => setOptions((prev) => prev.slice(0, -1))}
+          >
+            − Remove option
+          </button>
+        )}
+      </div>
+      <fieldset>
+        <legend>Results visibility</legend>
+        <label className="row">
+          <input
+            type="radio"
+            name="revealMode"
+            checked={revealMode === "live"}
+            onChange={() => setRevealMode("live")}
+          />
+          Show results live, as votes come in
+        </label>
+        <label className="row">
+          <input
+            type="radio"
+            name="revealMode"
+            checked={revealMode === "atEnd"}
+            onChange={() => setRevealMode("atEnd")}
+          />
+          Reveal results only at the end
+        </label>
+      </fieldset>
+      <div className="row" style={{ flexWrap: "wrap" }}>
+        {eventLive && <Button type="submit">Start poll</Button>}
         <Button
-          role="tab"
-          aria-selected={tab === "manage"}
-          variant={tab === "manage" ? "dark" : "secondary"}
-          onClick={() => setTab("manage")}
+          type="button"
+          variant={eventLive ? "secondary" : "primary"}
+          onClick={handleSaveDraft}
         >
-          Manage
+          Save for later
         </Button>
-        <Button
-          role="tab"
-          aria-selected={tab === "history"}
-          variant={tab === "history" ? "dark" : "secondary"}
-          onClick={() => setTab("history")}
-        >
-          History
+        <Button type="button" variant="secondary" onClick={resetForm}>
+          Clear
         </Button>
       </div>
-      {tab === "history" ? (
-        <PollHistory eventId={eventId} />
-      ) : (
-        <>
-          {activeSection}
-          {preparedPolls}
-          <h2 style={{ margin: 0 }}>Create a poll</h2>
-          <form onSubmit={handleCreate} className="card card--lift stack">
-            <TextField
-              label="Question"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              required
-            />
-            {options.map((opt, i) => (
-              <TextField
-                key={i}
-                label={`Option ${i + 1}`}
-                value={opt}
-                onChange={(e) =>
-                  setOptions((prev) => prev.map((o, idx) => (idx === i ? e.target.value : o)))
-                }
-              />
-            ))}
-            <div className="row">
-              {options.length < 6 && (
-                <button
-                  type="button"
-                  className="btn btn--secondary"
-                  onClick={() => setOptions((prev) => [...prev, ""])}
-                >
-                  + Add option
-                </button>
-              )}
-              {options.length > 2 && (
-                <button
-                  type="button"
-                  className="btn btn--secondary"
-                  onClick={() => setOptions((prev) => prev.slice(0, -1))}
-                >
-                  − Remove option
-                </button>
-              )}
-            </div>
-            <fieldset>
-              <legend>Results visibility</legend>
-              <label className="row">
-                <input
-                  type="radio"
-                  name="revealMode"
-                  checked={revealMode === "live"}
-                  onChange={() => setRevealMode("live")}
-                />
-                Show results live, as votes come in
-              </label>
-              <label className="row">
-                <input
-                  type="radio"
-                  name="revealMode"
-                  checked={revealMode === "atEnd"}
-                  onChange={() => setRevealMode("atEnd")}
-                />
-                Reveal results only at the end
-              </label>
-            </fieldset>
-            <div className="row" style={{ flexWrap: "wrap" }}>
-              {eventLive && <Button type="submit">Start poll</Button>}
-              <Button
-                type="button"
-                variant={eventLive ? "secondary" : "primary"}
-                onClick={handleSaveDraft}
-              >
-                Save for later
-              </Button>
-            </div>
-          </form>
-        </>
-      )}
+    </form>
+  );
+
+  return (
+    <div className="polls-layout">
+      <div className="stack polls-layout__main">
+        <h1 style={{ margin: 0 }}>Polls</h1>
+        <div role="tablist" aria-label="Polls sections" className="row">
+          <Button
+            role="tab"
+            aria-selected={tab === "manage"}
+            variant={tab === "manage" ? "dark" : "secondary"}
+            onClick={() => setTab("manage")}
+          >
+            Manage
+          </Button>
+          <Button
+            role="tab"
+            aria-selected={tab === "history"}
+            variant={tab === "history" ? "dark" : "secondary"}
+            onClick={() => setTab("history")}
+          >
+            History
+          </Button>
+        </div>
+        {tab === "history" ? (
+          <PollHistory eventId={eventId} onClone={handleClone} />
+        ) : (
+          <>
+            {activeSection}
+            {preparedPolls}
+          </>
+        )}
+      </div>
+      <aside className="polls-layout__side stack" aria-label="Create a poll">
+        <h2 style={{ margin: 0 }}>New poll</h2>
+        {createForm}
+      </aside>
     </div>
   );
 }
