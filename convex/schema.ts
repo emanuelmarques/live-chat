@@ -56,9 +56,11 @@ export default defineSchema({
     question: v.string(),
     options: v.array(v.string()),
     revealMode: v.union(v.literal("live"), v.literal("atEnd")),
-    status: v.union(v.literal("active"), v.literal("ended")),
+    // "draft" = prepared in advance, not visible to participants until activated.
+    status: v.union(v.literal("draft"), v.literal("active"), v.literal("ended")),
     resultsRevealed: v.boolean(),
-    startedAt: v.number(),
+    // `null` while the poll is still a draft.
+    startedAt: v.union(v.number(), v.null()),
     endedAt: v.union(v.number(), v.null()),
   }).index("by_event", ["eventId"]),
 

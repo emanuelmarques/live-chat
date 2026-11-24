@@ -2,6 +2,15 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireModerator } from "./lib/requireModerator";
 
+function validatePollInput(question: string, options: string[]) {
+  if (question.trim().length === 0) {
+    throw new Error("A poll needs a question.");
+  }
+  if (options.length < 2 || options.length > 6) {
+    throw new Error("A poll must have between 2 and 6 options.");
+  }
+}
+
 export const createAndStartPoll = mutation({
   args: {
     sessionToken: v.string(),
@@ -12,9 +21,7 @@ export const createAndStartPoll = mutation({
   },
   handler: async (ctx, { sessionToken, eventId, question, options, revealMode }) => {
     await requireModerator(ctx, sessionToken);
-    if (options.length < 2 || options.length > 6) {
-      throw new Error("A poll must have between 2 and 6 options.");
-    }
+    validatePollInput(question, options);
     const event = await ctx.db.get(eventId);
     if (event === null) {
       throw new Error("Event not found.");
@@ -34,6 +41,109 @@ export const createAndStartPoll = mutation({
     });
     await ctx.db.patch(eventId, { activePollId: pollId });
     return { pollId };
+  },
+});
+
+export const createDraftPoll = mutation({
+  args: {
+    sessionToken: v.string(),
+    eventId: v.id("events"),
+    question: v.string(),
+    options: v.array(v.string()),
+    revealMode: v.union(v.literal("live"), v.literal("atEnd")),
+  },
+  handler: async (ctx, { sessionToken, eventId, question, options, revealMode }) => {
+    await requireModerator(ctx, sessionToken);
+    validatePollInput(question, options);
+    const event = await ctx.db.get(eventId);
+    if (event === null) {
+      throw new Error("Event not found.");
+    }
+    const pollId = await ctx.db.insert("polls", {
+      eventId,
+      question,
+      options,
+      revealMode,
+      status: "draft",
+      resultsRevealed: false,
+      startedAt: null,
+      endedAt: null,
+    });
+    return { pollId };
+  },
+});
+
+export const listDraftPolls = query({
+  args: { sessionToken: v.string(), eventId: v.id("events") },
+  handler: async (ctx, { sessionToken, eventId }) => {
+    await requireModerator(ctx, sessionToken);
+    const polls = await ctx.db
+      .query("polls")
+      .withIndex("by_event", (q) => q.eq("eventId", eventId))
+      .collect();
+    return polls
+      .filter((p) => p.status === "draft")
+      .map((p) => ({
+        pollId: p._id,
+        question: p.question,
+        options: p.options,
+        revealMode: p.revealMode,
+      }));
+  },
+});
+
+export const deleteDraftPoll = mutation({
+  args: { sessionToken: v.string(), pollId: v.id("polls") },
+  handler: async (ctx, { sessionToken, pollId }) => {
+    await requireModerator(ctx, sessionToken);
+    const poll = await ctx.db.get(pollId);
+    if (poll === null) {
+      throw new Error("Poll not found.");
+    }
+    if (poll.status !== "draft") {
+      throw new Error("Only prepared (draft) polls can be deleted.");
+    }
+    await ctx.db.delete(pollId);
+    return {};
+  },
+});
+
+/**
+ * Takes a prepared poll live. Only one poll may be active per event: if another
+ * is already active, the caller must pass `replaceActive: true` (after the
+ * moderator confirmed) — the active poll is then ended and this one starts.
+ */
+export const activatePoll = mutation({
+  args: {
+    sessionToken: v.string(),
+    pollId: v.id("polls"),
+    replaceActive: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { sessionToken, pollId, replaceActive }) => {
+    await requireModerator(ctx, sessionToken);
+    const poll = await ctx.db.get(pollId);
+    if (poll === null) {
+      throw new Error("Poll not found.");
+    }
+    if (poll.status !== "draft") {
+      throw new Error("Only prepared (draft) polls can be activated.");
+    }
+    const event = await ctx.db.get(poll.eventId);
+    if (event === null) {
+      throw new Error("Event not found.");
+    }
+    if (event.status !== "active") {
+      throw new Error("This event has ended.");
+    }
+    if (event.activePollId !== null) {
+      if (!replaceActive) {
+        throw new Error("Another poll is already active for this event.");
+      }
+      await ctx.db.patch(event.activePollId, { status: "ended", endedAt: Date.now() });
+    }
+    await ctx.db.patch(pollId, { status: "active", startedAt: Date.now() });
+    await ctx.db.patch(event._id, { activePollId: pollId });
+    return {};
   },
 });
 
@@ -78,12 +188,23 @@ export const castVote = mutation({
 export const getActivePoll = query({
   args: { eventId: v.id("events") },
   handler: async (ctx, { eventId }) => {
-    const [poll] = await ctx.db
-      .query("polls")
-      .withIndex("by_event", (q) => q.eq("eventId", eventId))
-      .order("desc")
-      .take(1);
-    if (poll === undefined) {
+    const event = await ctx.db.get(eventId);
+    if (event === null) {
+      return null;
+    }
+    let poll = event.activePollId !== null ? await ctx.db.get(event.activePollId) : null;
+    if (poll === null) {
+      // No active poll: fall back to the most recently ended one (drafts never count).
+      const polls = await ctx.db
+        .query("polls")
+        .withIndex("by_event", (q) => q.eq("eventId", eventId))
+        .collect();
+      poll =
+        polls
+          .filter((p) => p.status === "ended")
+          .sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0))[0] ?? null;
+    }
+    if (poll === null) {
       return null;
     }
 
@@ -131,11 +252,55 @@ export const endPoll = mutation({
     if (poll === null) {
       throw new Error("Poll not found.");
     }
+    if (poll.status === "draft") {
+      throw new Error("A prepared poll has not started; delete it instead.");
+    }
     await ctx.db.patch(pollId, { status: "ended", endedAt: Date.now() });
     const event = await ctx.db.get(poll.eventId);
     if (event !== null && event.activePollId === pollId) {
       await ctx.db.patch(poll.eventId, { activePollId: null });
     }
     return {};
+  },
+});
+
+/**
+ * Moderator-only history of every poll that has gone live (active or ended),
+ * newest first, with full results regardless of the poll's `revealMode`.
+ */
+export const listPollHistory = query({
+  args: { sessionToken: v.string(), eventId: v.id("events") },
+  handler: async (ctx, { sessionToken, eventId }) => {
+    await requireModerator(ctx, sessionToken);
+    const polls = await ctx.db
+      .query("polls")
+      .withIndex("by_event", (q) => q.eq("eventId", eventId))
+      .collect();
+    const started = polls
+      .filter((p) => p.status !== "draft")
+      .sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));
+    return await Promise.all(
+      started.map(async (poll) => {
+        const votes = await ctx.db
+          .query("pollVotes")
+          .withIndex("by_poll_participant", (q) => q.eq("pollId", poll._id))
+          .collect();
+        const counts: number[] = new Array(poll.options.length).fill(0);
+        for (const vote of votes) {
+          counts[vote.optionIndex]++;
+        }
+        return {
+          pollId: poll._id,
+          question: poll.question,
+          options: poll.options,
+          revealMode: poll.revealMode,
+          isActive: poll.status === "active",
+          startedAt: poll.startedAt,
+          endedAt: poll.endedAt,
+          counts,
+          totalVotes: votes.length,
+        };
+      }),
+    );
   },
 });

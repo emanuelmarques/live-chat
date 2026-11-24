@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
 import { createModeratorSession, newTestInstance } from "./testHelpers";
 
@@ -59,6 +60,96 @@ describe("polls", () => {
         revealMode: "live",
       }),
     ).rejects.toThrow();
+  });
+
+  describe("prepared (draft) polls", () => {
+    const draft = (eventId: Id<"events">, sessionToken: string, question = "Prepared?") => ({
+      sessionToken,
+      eventId,
+      question,
+      options: ["A", "B"],
+      revealMode: "live" as const,
+    });
+
+    test("a draft is invisible to participants and cannot be voted on", async () => {
+      const t = newTestInstance();
+      const { eventId, sessionToken, participantA } = await setupEventWithTwoParticipants(t);
+      const { pollId } = await t.mutation(api.polls.createDraftPoll, draft(eventId, sessionToken));
+
+      expect(await t.query(api.polls.getActivePoll, { eventId })).toBeNull();
+      const drafts = await t.query(api.polls.listDraftPolls, { sessionToken, eventId });
+      expect(drafts.map((d) => d.pollId)).toEqual([pollId]);
+      await expect(
+        t.mutation(api.polls.castVote, { pollId, participantId: participantA, optionIndex: 0 }),
+      ).rejects.toThrow();
+    });
+
+    test("activating a draft makes it live and removes it from the drafts list", async () => {
+      const t = newTestInstance();
+      const { eventId, sessionToken } = await setupEventWithTwoParticipants(t);
+      const { pollId } = await t.mutation(api.polls.createDraftPoll, draft(eventId, sessionToken));
+
+      await t.mutation(api.polls.activatePoll, { sessionToken, pollId });
+
+      const live = await t.query(api.polls.getActivePoll, { eventId });
+      expect(live?.pollId).toBe(pollId);
+      expect(live?.isActive).toBe(true);
+      expect(await t.query(api.polls.listDraftPolls, { sessionToken, eventId })).toEqual([]);
+    });
+
+    test("activating while another poll is active is refused unless replaceActive is set", async () => {
+      const t = newTestInstance();
+      const { eventId, sessionToken, participantA } = await setupEventWithTwoParticipants(t);
+      const first = await t.mutation(api.polls.createAndStartPoll, draft(eventId, sessionToken, "First?"));
+      await t.mutation(api.polls.castVote, {
+        pollId: first.pollId,
+        participantId: participantA,
+        optionIndex: 0,
+      });
+      const { pollId } = await t.mutation(api.polls.createDraftPoll, draft(eventId, sessionToken));
+
+      await expect(t.mutation(api.polls.activatePoll, { sessionToken, pollId })).rejects.toThrow(
+        /already active/,
+      );
+      expect((await t.query(api.polls.getActivePoll, { eventId }))?.pollId).toBe(first.pollId);
+
+      await t.mutation(api.polls.activatePoll, { sessionToken, pollId, replaceActive: true });
+      const live = await t.query(api.polls.getActivePoll, { eventId });
+      expect(live?.pollId).toBe(pollId);
+      expect(live?.isActive).toBe(true);
+      // The replaced poll was closed, not deleted, and no longer accepts votes.
+      await expect(
+        t.mutation(api.polls.castVote, {
+          pollId: first.pollId,
+          participantId: participantA,
+          optionIndex: 1,
+        }),
+      ).rejects.toThrow();
+    });
+
+    test("a draft activated after a newer poll ended is still the one shown", async () => {
+      const t = newTestInstance();
+      const { eventId, sessionToken } = await setupEventWithTwoParticipants(t);
+      const old = await t.mutation(api.polls.createDraftPoll, draft(eventId, sessionToken, "Old draft"));
+      const newer = await t.mutation(api.polls.createAndStartPoll, draft(eventId, sessionToken, "Newer"));
+      await t.mutation(api.polls.endPoll, { sessionToken, pollId: newer.pollId });
+
+      await t.mutation(api.polls.activatePoll, { sessionToken, pollId: old.pollId });
+      expect((await t.query(api.polls.getActivePoll, { eventId }))?.pollId).toBe(old.pollId);
+    });
+
+    test("drafts can be deleted, but active polls cannot be deleted this way", async () => {
+      const t = newTestInstance();
+      const { eventId, sessionToken } = await setupEventWithTwoParticipants(t);
+      const { pollId } = await t.mutation(api.polls.createDraftPoll, draft(eventId, sessionToken));
+      await t.mutation(api.polls.deleteDraftPoll, { sessionToken, pollId });
+      expect(await t.query(api.polls.listDraftPolls, { sessionToken, eventId })).toEqual([]);
+
+      const live = await t.mutation(api.polls.createAndStartPoll, draft(eventId, sessionToken));
+      await expect(
+        t.mutation(api.polls.deleteDraftPoll, { sessionToken, pollId: live.pollId }),
+      ).rejects.toThrow();
+    });
   });
 
   test("a participant can only vote once per poll", async () => {
@@ -173,5 +264,28 @@ describe("polls", () => {
         revealMode: "live",
       }),
     ).resolves.toBeDefined();
+  });
+});
+
+describe("poll history", () => {
+  test("lists started polls newest first with full counts, excluding drafts", async () => {
+    const t = newTestInstance();
+    const { eventId, sessionToken, participantA, participantB } =
+      await setupEventWithTwoParticipants(t);
+    const base = { sessionToken, eventId, options: ["A", "B"], revealMode: "atEnd" as const };
+    const first = await t.mutation(api.polls.createAndStartPoll, { ...base, question: "First?" });
+    await t.mutation(api.polls.castVote, { pollId: first.pollId, participantId: participantA, optionIndex: 0 });
+    await t.mutation(api.polls.castVote, { pollId: first.pollId, participantId: participantB, optionIndex: 0 });
+    await t.mutation(api.polls.endPoll, { sessionToken, pollId: first.pollId });
+    await t.mutation(api.polls.createDraftPoll, { ...base, question: "Draft?" });
+    const second = await t.mutation(api.polls.createAndStartPoll, { ...base, question: "Second?" });
+
+    const history = await t.query(api.polls.listPollHistory, { sessionToken, eventId });
+    expect(history.map((h) => h.pollId)).toEqual([second.pollId, first.pollId]);
+    expect(history[0].isActive).toBe(true);
+    expect(history[1].counts).toEqual([2, 0]);
+    expect(history[1].totalVotes).toBe(2);
+    // Hidden from participants while an atEnd poll is live, but visible to the moderator.
+    expect(history[0].counts).toEqual([0, 0]);
   });
 });
