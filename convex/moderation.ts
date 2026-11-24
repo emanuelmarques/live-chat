@@ -1,6 +1,33 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireModerator } from "./lib/requireModerator";
+import { insertMissingDefaultTerms } from "./lib/defaultBlocklist";
+
+/** Adds the default block-list terms the moderator doesn't already have. */
+export const addDefaultBlockList = mutation({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, { sessionToken }) => {
+    const moderatorId = await requireModerator(ctx, sessionToken);
+    return { added: await insertMissingDefaultTerms(ctx.db, moderatorId) };
+  },
+});
+
+/**
+ * One-off backfill for deployments created before the defaults existed:
+ * `npx convex run moderation:seedDefaultsForExistingModerators` (add `--prod` for production).
+ * The block-list is global, so this covers every existing event.
+ */
+export const seedDefaultsForExistingModerators = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const moderators = await ctx.db.query("moderators").collect();
+    let added = 0;
+    for (const m of moderators) {
+      added += await insertMissingDefaultTerms(ctx.db, m._id);
+    }
+    return { moderators: moderators.length, added };
+  },
+});
 
 export const listBlockListEntries = query({
   args: { sessionToken: v.string() },

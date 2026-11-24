@@ -10,6 +10,8 @@ export default defineConfig({
     },
   },
   test: {
+    // See vitest.convex.config.ts — the default pools crash here; vmThreads works.
+    pool: "vmThreads",
     environment: "jsdom",
     setupFiles: ["./src/__tests__/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],

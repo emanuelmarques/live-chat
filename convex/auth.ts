@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { hashPassword, verifyPassword } from "./lib/password";
+import { insertMissingDefaultTerms } from "./lib/defaultBlocklist";
 
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
@@ -22,6 +23,7 @@ export const bootstrapModerator = mutation({
       passwordHash,
       createdAt: Date.now(),
     });
+    await insertMissingDefaultTerms(ctx.db, moderatorId);
     return { moderatorId };
   },
 });

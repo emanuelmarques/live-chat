@@ -17,7 +17,9 @@ export function ModerationPage() {
   const reject = useMutation(api.moderation.rejectMessage);
   const addTerm = useMutation(api.moderation.addBlockListEntry);
   const removeTerm = useMutation(api.moderation.removeBlockListEntry);
+  const addDefaults = useMutation(api.moderation.addDefaultBlockList);
   const [newTerm, setNewTerm] = useState("");
+  const [defaultsNote, setDefaultsNote] = useState("");
 
   if (!eventIdParam) {
     return <EmptyState>No event selected.</EmptyState>;
@@ -67,8 +69,18 @@ export function ModerationPage() {
         <section className="card" style={{ flexBasis: 320, flexGrow: 2 }}>
           <h2>Block-list</h2>
           <p style={{ margin: "0 0 0.75rem", fontSize: "0.85rem", color: "var(--muted)" }}>
-            Applies to new messages only. Any language.
+            Applies to new messages in every event. Ignores case and accents.
           </p>
+          <Button
+            variant="dark"
+            onClick={async () => {
+              const { added } = await addDefaults({ sessionToken });
+              setDefaultsNote(added > 0 ? `Added ${added} default terms.` : "Defaults already in the list.");
+            }}
+          >
+            Add default list
+          </Button>
+          {defaultsNote && <p role="status" style={{ margin: "0.5rem 0 0", fontSize: "0.85rem" }}>{defaultsNote}</p>}
           <form onSubmit={handleAddTerm} style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end" }}>
             <div style={{ flex: 1 }}>
               <TextField
