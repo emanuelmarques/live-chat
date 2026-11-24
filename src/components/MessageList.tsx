@@ -1,3 +1,5 @@
+import { MessageReactions, type MessageReaction } from "./MessageReactions";
+
 export interface MessageRow {
   messageId: string;
   participantId: string;
@@ -5,11 +7,13 @@ export interface MessageRow {
   content: string;
   replyTo: { messageId: string; deleted: boolean; authorDisplayName?: string; content?: string } | null;
   sentAt: number;
+  reactions?: MessageReaction[];
 }
 
 interface MessageListProps {
   messages: MessageRow[];
   currentParticipantId?: string;
+  onToggleReaction?: (messageId: string, emoji: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (message: MessageRow) => void;
 }
@@ -26,7 +30,13 @@ function formatTime(ms: number): string {
   return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-export function MessageList({ messages, currentParticipantId, onDelete, onReply }: MessageListProps) {
+export function MessageList({
+  messages,
+  currentParticipantId,
+  onToggleReaction,
+  onDelete,
+  onReply,
+}: MessageListProps) {
   return (
     <ul className="msgs" aria-live="polite" aria-relevant="additions">
       {messages.map((message) => {
@@ -54,6 +64,11 @@ export function MessageList({ messages, currentParticipantId, onDelete, onReply 
                 )}
                 <span>{message.content}</span>
               </div>
+              <MessageReactions
+                reactions={message.reactions ?? []}
+                currentParticipantId={currentParticipantId}
+                onToggle={onToggleReaction ? (emoji) => onToggleReaction(message.messageId, emoji) : undefined}
+              />
               {(onReply || (onDelete && isOwn)) && (
                 <div className="msg__actions">
                   {onReply && (

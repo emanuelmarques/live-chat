@@ -94,6 +94,20 @@ export const listMessages = query({
 
     const byId = new Map(all.map((m) => [m._id, m]));
 
+    const reactionRows = await ctx.db
+      .query("messageReactions")
+      .withIndex("by_event", (q) => q.eq("eventId", eventId))
+      .collect();
+    // messageId -> emoji -> participantIds (insertion order keeps emoji order stable)
+    const reactionsByMessage = new Map<string, Map<string, string[]>>();
+    for (const r of reactionRows) {
+      const perEmoji = reactionsByMessage.get(r.messageId) ?? new Map<string, string[]>();
+      const ids = perEmoji.get(r.emoji) ?? [];
+      ids.push(r.participantId);
+      perEmoji.set(r.emoji, ids);
+      reactionsByMessage.set(r.messageId, perEmoji);
+    }
+
     return all
       .filter((m) => m.moderationStatus === "visible" && m.deletedAt === null)
       .map((m) => {
@@ -127,6 +141,10 @@ export const listMessages = query({
           content: m.content,
           replyTo,
           sentAt: m.sentAt,
+          reactions: [...(reactionsByMessage.get(m._id) ?? [])].map(([emoji, participantIds]) => ({
+            emoji,
+            participantIds,
+          })),
         };
       });
   },

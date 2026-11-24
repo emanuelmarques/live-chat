@@ -52,6 +52,7 @@ export function ChatPage() {
   const sendMessage = useMutation(api.messages.sendMessage);
   const deleteMessage = useMutation(api.messages.deleteMessage);
   const sendReaction = useMutation(api.reactions.sendReaction);
+  const toggleMessageReaction = useMutation(api.messageReactions.toggleMessageReaction);
   const activePoll = useQuery(api.polls.getActivePoll, info ? { eventId: info.eventId } : "skip");
   const castVote = useMutation(api.polls.castVote);
 
@@ -142,6 +143,18 @@ export function ChatPage() {
     markPollVoted(activePoll.pollId);
   }
 
+  async function handleToggleMessageReaction(messageId: string, emoji: string) {
+    try {
+      await toggleMessageReaction({
+        messageId: messageId as Id<"messages">,
+        participantId: participant!.participantId as Id<"participants">,
+        emoji,
+      });
+    } catch {
+      // Message may have been deleted/rejected meanwhile; the live query will catch up.
+    }
+  }
+
   async function handleReact(emoji: string) {
     try {
       await sendReaction({
@@ -198,6 +211,7 @@ export function ChatPage() {
         <MessageList
           messages={messages}
           currentParticipantId={participant.participantId}
+          onToggleReaction={handleToggleMessageReaction}
           onDelete={handleDelete}
           onReply={(message) => setReplyTo(message)}
         />

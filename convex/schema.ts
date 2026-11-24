@@ -77,6 +77,19 @@ export default defineSchema({
     addedAt: v.number(),
   }).index("by_moderator", ["moderatorId"]),
 
+  // Persistent reactions attached to a chat message (one row per participant +
+  // message + emoji; toggling again removes it). Same emoji set as the flying
+  // reactions below.
+  messageReactions: defineTable({
+    eventId: v.id("events"),
+    messageId: v.id("messages"),
+    participantId: v.id("participants"),
+    emoji: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_event", ["eventId"])
+    .index("by_message_participant_emoji", ["messageId", "participantId", "emoji"]),
+
   // Ephemeral Zoom-style flying reactions — not part of the chat transcript,
   // so they're pruned shortly after they're sent (see crons.ts) rather than
   // retained for the life of the event.

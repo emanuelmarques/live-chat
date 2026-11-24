@@ -5,7 +5,7 @@ import type { Id } from "./_generated/dataModel";
 // Fixed, curated set — mirrors Zoom-style reactions rather than a free-form
 // emoji picker, so the flying overlay stays a small, recognizable vocabulary.
 // Keep in sync with QUICK_REACTIONS in src/lib/reactions.ts.
-export const QUICK_REACTIONS = ["👍", "❤️", "🎉", "😂", "👏", "😮", "🔥", "💯"] as const;
+export const QUICK_REACTIONS = ["👍", "👎", "❤️", "🎉", "😂", "👏", "😮", "🔥", "💯"] as const;
 
 // How long a reaction stays eligible to be returned by listRecentReactions.
 // Clients only animate reactions they haven't seen and that are fresh enough

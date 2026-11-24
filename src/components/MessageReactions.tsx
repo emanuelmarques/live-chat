@@ -1,0 +1,80 @@
+import { useRef, useState } from "react";
+import { QUICK_REACTIONS } from "../lib/reactions";
+import { useDismissablePopover } from "../lib/useDismissablePopover";
+
+export interface MessageReaction {
+  emoji: string;
+  participantIds: string[];
+}
+
+interface MessageReactionsProps {
+  reactions: MessageReaction[];
+  currentParticipantId?: string;
+  onToggle?: (emoji: string) => void;
+}
+
+/** Reaction chips under a message, plus (when interactive) an "add reaction" picker. */
+export function MessageReactions({ reactions, currentParticipantId, onToggle }: MessageReactionsProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  useDismissablePopover(containerRef, open, () => setOpen(false));
+
+  if (reactions.length === 0 && !onToggle) return null;
+
+  return (
+    <div className="msg-reactions" ref={containerRef}>
+      {reactions.map(({ emoji, participantIds }) => {
+        const mine = currentParticipantId !== undefined && participantIds.includes(currentParticipantId);
+        const label = `${emoji} ${participantIds.length}`;
+        return onToggle ? (
+          <button
+            key={emoji}
+            type="button"
+            className={`msg-reactions__chip${mine ? " msg-reactions__chip--mine" : ""}`}
+            aria-pressed={mine}
+            aria-label={`${label}${mine ? " (you reacted)" : ""}`}
+            onClick={() => onToggle(emoji)}
+          >
+            <span aria-hidden="true">{emoji}</span> {participantIds.length}
+          </button>
+        ) : (
+          <span key={emoji} className="msg-reactions__chip" aria-label={label}>
+            <span aria-hidden="true">{emoji}</span> {participantIds.length}
+          </span>
+        );
+      })}
+      {onToggle && (
+        <span className="msg-reactions__add">
+          <button
+            type="button"
+            className="msg-reactions__chip msg-reactions__chip--add"
+            aria-haspopup="true"
+            aria-expanded={open}
+            aria-label="Add reaction"
+            onClick={() => setOpen((o) => !o)}
+          >
+            + 😊
+          </button>
+          {open && (
+            <div className="reaction-popover msg-reactions__popover" role="menu" aria-label="React to message">
+              {QUICK_REACTIONS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  role="menuitem"
+                  className="reaction-popover__item"
+                  onClick={() => {
+                    onToggle(emoji);
+                    setOpen(false);
+                  }}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+        </span>
+      )}
+    </div>
+  );
+}

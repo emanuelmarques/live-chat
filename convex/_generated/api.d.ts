@@ -16,6 +16,7 @@ import type * as lib_blocklist from "../lib/blocklist.js";
 import type * as lib_csv from "../lib/csv.js";
 import type * as lib_password from "../lib/password.js";
 import type * as lib_requireModerator from "../lib/requireModerator.js";
+import type * as messageReactions from "../messageReactions.js";
 import type * as messages from "../messages.js";
 import type * as moderation from "../moderation.js";
 import type * as participants from "../participants.js";
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   "lib/csv": typeof lib_csv;
   "lib/password": typeof lib_password;
   "lib/requireModerator": typeof lib_requireModerator;
+  messageReactions: typeof messageReactions;
   messages: typeof messages;
   moderation: typeof moderation;
   participants: typeof participants;

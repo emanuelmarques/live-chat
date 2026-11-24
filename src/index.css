@@ -670,6 +670,8 @@ textarea:focus-visible {
 }
 
 .reaction-popover {
+  flex-wrap: wrap;
+  max-width: min(320px, calc(100vw - 2rem));
   position: absolute;
   bottom: calc(100% + 0.5rem);
   left: 0;
@@ -1052,6 +1054,63 @@ textarea:focus-visible {
 
 .msg__actions .danger {
   color: var(--live-text);
+}
+
+.msg-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  position: relative;
+}
+
+.msg--own .msg-reactions {
+  justify-content: flex-end;
+}
+
+.msg-reactions__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 0.5rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+button.msg-reactions__chip {
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.msg-reactions__chip--mine {
+  background: var(--sand);
+  border-width: 2px;
+}
+
+.msg-reactions__chip--add {
+  border-style: dashed;
+  font-size: 0.75rem;
+}
+
+.msg-reactions__add {
+  position: relative;
+}
+
+.msg-reactions__popover {
+  bottom: calc(100% + 4px);
+  top: auto;
+  left: 0;
+  right: auto;
+}
+
+.msg--own .msg-reactions__popover {
+  left: auto;
+  right: 0;
 }
 
 .pending {
