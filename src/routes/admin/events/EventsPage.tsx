@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, api, type Id } from "../../../lib/convexClient";
 import { getStoredSessionToken } from "../../../lib/session";
@@ -67,11 +67,86 @@ function CopyCodeButton({ code }: { code: string }) {
   );
 }
 
+function ConfirmDeleteModal({
+  eventName,
+  onCancel,
+  onConfirm,
+}: {
+  eventName: string;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    cancelRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !busy) onCancel();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [busy, onCancel]);
+
+  async function confirm() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await onConfirm();
+    } catch {
+      setBusy(false); // on success the modal unmounts
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={() => !busy && onCancel()}>
+      <div
+        className="modal card card--lift"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-event-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="delete-event-title" style={{ margin: 0 }}>
+          Delete this event?
+        </h2>
+        <p style={{ margin: 0 }}>
+          <strong>{eventName}</strong> and all its messages, polls, votes and participants will be
+          permanently deleted. This cannot be undone.
+        </p>
+        <div className="row" style={{ justifyContent: "flex-end", gap: "0.75rem" }}>
+          <button
+            ref={cancelRef}
+            type="button"
+            className="btn btn--secondary"
+            onClick={onCancel}
+            disabled={busy}
+          >
+            Cancel
+          </button>
+          <Button variant="danger" onClick={confirm} disabled={busy}>
+            {busy ? "Deleting…" : "Delete permanently"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function EventsPage() {
   const sessionToken = getStoredSessionToken() ?? "";
   const events = useQuery(api.events.listEvents, { sessionToken });
   const createEvent = useMutation(api.events.createEvent);
   const endEvent = useMutation(api.events.endEvent);
+  const deleteEvent = useMutation(api.events.deleteEvent);
+  const [tab, setTab] = useState<"open" | "closed">("open");
+  const [search, setSearch] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<{ eventId: Id<"events">; name: string } | null>(
+    null,
+  );
   const [name, setName] = useState("");
   const [expandedEventId, setExpandedEventId] = useState<Id<"events"> | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -89,6 +164,9 @@ export function EventsPage() {
     try {
       const { eventId } = await createEvent({ sessionToken, name: trimmed });
       setName("");
+      // Make sure the new event is visible: switch to Open and drop any filter.
+      setTab("open");
+      setSearch("");
       setExpandedEventId(eventId);
     } finally {
       isCreatingRef.current = false;
@@ -100,6 +178,17 @@ export function EventsPage() {
     if (!window.confirm("End this event? Nobody will be able to join or post afterwards.")) return;
     await endEvent({ sessionToken, eventId });
   }
+
+  const needle = search.trim().toLowerCase();
+  const visibleEvents = (events ?? [])
+    .filter((e) => (e.status === "active") === (tab === "open"))
+    .filter(
+      (e) =>
+        !needle || e.name.toLowerCase().includes(needle) || e.joinSlug.toLowerCase().includes(needle),
+    )
+    .sort((a, b) =>
+      tab === "open" ? b.createdAt - a.createdAt : (b.endedAt ?? 0) - (a.endedAt ?? 0),
+    );
 
   return (
     <div className="stack" style={{ gap: "1.25rem" }}>
@@ -123,13 +212,46 @@ export function EventsPage() {
         </Button>
       </form>
 
+      <div className="events-toolbar">
+        <div role="tablist" aria-label="Events" className="tabs">
+          {(["open", "closed"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
+              className={`tabs__tab${tab === t ? " tabs__tab--active" : ""}`}
+              onClick={() => setTab(t)}
+            >
+              {t === "open" ? "Open" : "History"}
+              {events &&
+                ` (${events.filter((e) => (e.status === "active") === (t === "open")).length})`}
+            </button>
+          ))}
+        </div>
+        <input
+          type="search"
+          className="events-search"
+          aria-label={tab === "open" ? "Search open events" : "Search event history"}
+          placeholder="Search by name or code…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
       {events === undefined && <p role="status">Loading…</p>}
-      {events && events.length === 0 && <EmptyState>No events yet — create one above.</EmptyState>}
-      {events && events.length > 0 && (
+      {events && visibleEvents.length === 0 && (
+        <EmptyState>
+          {needle
+            ? "No events match your search."
+            : tab === "open"
+              ? "No open events — create one above."
+              : "No ended events yet."}
+        </EmptyState>
+      )}
+      {events && visibleEvents.length > 0 && (
         <ul className="list">
-          {[...events]
-            .sort((a, b) => Number(b.status === "active") - Number(a.status === "active"))
-            .map((event) => {
+          {visibleEvents.map((event) => {
               const expanded = expandedEventId === event.eventId;
               const live = event.status === "active";
               return (
@@ -152,13 +274,21 @@ export function EventsPage() {
                     >
                       Manage
                     </Link>
-                    {live && (
+                    {live ? (
                       <button
                         type="button"
                         className="btn btn--secondary"
                         onClick={() => handleEnd(event.eventId)}
                       >
                         End event
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn--danger"
+                        onClick={() => setPendingDelete({ eventId: event.eventId, name: event.name })}
+                      >
+                        Delete
                       </button>
                     )}
                   </div>
@@ -201,6 +331,18 @@ export function EventsPage() {
               );
             })}
         </ul>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDeleteModal
+          eventName={pendingDelete.name}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={async () => {
+            await deleteEvent({ sessionToken, eventId: pendingDelete.eventId });
+            if (expandedEventId === pendingDelete.eventId) setExpandedEventId(null);
+            setPendingDelete(null);
+          }}
+        />
       )}
     </div>
   );

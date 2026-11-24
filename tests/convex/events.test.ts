@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { api } from "../../convex/_generated/api";
+import { api, internal } from "../../convex/_generated/api";
 import { createModeratorSession, newTestInstance } from "./testHelpers";
 
 describe("events", () => {
@@ -90,5 +90,50 @@ describe("events", () => {
 
     const events = await t.query(api.events.listEvents, { sessionToken });
     expect(events.map((e) => e.name).sort()).toEqual(["Event A", "Event B"]);
+  });
+
+  test("deleteEvent refuses live events and non-moderators", async () => {
+    const t = newTestInstance();
+    const sessionToken = await createModeratorSession(t);
+    const { eventId } = await t.mutation(api.events.createEvent, { sessionToken, name: "Live" });
+
+    await expect(
+      t.mutation(api.events.deleteEvent, { sessionToken: "bogus", eventId }),
+    ).rejects.toThrow();
+    await expect(t.mutation(api.events.deleteEvent, { sessionToken, eventId })).rejects.toThrow(
+      /End the event/,
+    );
+    expect(await t.query(api.events.getEvent, { eventId })).not.toBeNull();
+  });
+
+  test("deleteEvent removes an ended event and purges its data", async () => {
+    const t = newTestInstance();
+    const sessionToken = await createModeratorSession(t);
+    const { eventId, joinSlug } = await t.mutation(api.events.createEvent, {
+      sessionToken,
+      name: "Old",
+    });
+    const { participantId } = await t.mutation(api.participants.joinEvent, {
+      eventId,
+      displayName: "Ana",
+    });
+    await t.mutation(api.messages.sendMessage, { eventId, participantId, content: "hello" });
+    await t.mutation(api.events.endEvent, { sessionToken, eventId });
+
+    await t.mutation(api.events.deleteEvent, { sessionToken, eventId });
+    expect(await t.query(api.events.getJoinInfo, { joinSlug })).toBeNull();
+    expect(await t.query(api.events.listEvents, { sessionToken })).toEqual([]);
+
+    // The scheduled purge, run directly.
+    await t.mutation(internal.events.purgeEventData, { eventId });
+    const leftovers = await t.run(async (ctx) => ({
+      participants: (await ctx.db.query("participants").collect()).length,
+      messages: (await ctx.db.query("messages").collect()).length,
+      presence: (await ctx.db.query("presence").collect()).length,
+    }));
+    expect(leftovers).toEqual({ participants: 0, messages: 0, presence: 0 });
+
+    // Deleting again is a harmless no-op (double click / stale tab).
+    await expect(t.mutation(api.events.deleteEvent, { sessionToken, eventId })).resolves.toEqual({});
   });
 });

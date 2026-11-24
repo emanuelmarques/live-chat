@@ -1,5 +1,7 @@
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import type { Id, TableNames } from "./_generated/dataModel";
 import { requireModerator } from "./lib/requireModerator";
 import { MAX_EVENT_NAME_LENGTH, assertMaxLength } from "./lib/limits";
 
@@ -99,6 +101,7 @@ export const listEvents = query({
       status: event.status,
       joinSlug: event.joinSlug,
       createdAt: event.createdAt,
+      endedAt: event.endedAt,
     }));
   },
 });
@@ -121,5 +124,94 @@ export const endEvent = mutation({
     }
     await ctx.db.patch(eventId, { status: "ended", endedAt: now, activePollId: null });
     return {};
+  },
+});
+
+/**
+ * Permanently deletes an ended event and everything that belongs to it. Only
+ * ended events can be deleted — a live event must be ended first.
+ *
+ * The event row goes immediately (so it vanishes from every list and its join
+ * link stops resolving); its messages, polls, participants etc. are purged in
+ * batches by `purgeEventData`, since one mutation can't write unboundedly.
+ */
+export const deleteEvent = mutation({
+  args: { sessionToken: v.string(), eventId: v.id("events") },
+  handler: async (ctx, { sessionToken, eventId }) => {
+    await requireModerator(ctx, sessionToken);
+    const event = await ctx.db.get(eventId);
+    if (event === null) {
+      return {}; // already deleted (double click / stale tab)
+    }
+    if (event.status !== "ended") {
+      throw new Error("End the event before deleting it.");
+    }
+    await ctx.db.delete(eventId);
+    await ctx.scheduler.runAfter(0, internal.events.purgeEventData, { eventId });
+    return {};
+  },
+});
+
+const PURGE_BATCH = 300;
+
+export const purgeEventData = internalMutation({
+  args: { eventId: v.id("events") },
+  handler: async (ctx, { eventId }) => {
+    let more = false;
+    const sweep = async (rows: { _id: Id<TableNames> }[]) => {
+      await Promise.all(rows.map((r) => ctx.db.delete(r._id)));
+      if (rows.length === PURGE_BATCH) more = true;
+    };
+
+    const polls = await ctx.db
+      .query("polls")
+      .withIndex("by_event", (q) => q.eq("eventId", eventId))
+      .take(20);
+    for (const poll of polls) {
+      const votes = await ctx.db
+        .query("pollVotes")
+        .withIndex("by_poll_participant", (q) => q.eq("pollId", poll._id))
+        .take(PURGE_BATCH);
+      await sweep(votes);
+      if (votes.length < PURGE_BATCH) {
+        await ctx.db.delete(poll._id);
+      }
+    }
+    if (polls.length === 20) more = true;
+
+    await sweep(
+      await ctx.db
+        .query("messageReactions")
+        .withIndex("by_event", (q) => q.eq("eventId", eventId))
+        .take(PURGE_BATCH),
+    );
+    await sweep(
+      await ctx.db
+        .query("reactions")
+        .withIndex("by_event_sentAt", (q) => q.eq("eventId", eventId))
+        .take(PURGE_BATCH),
+    );
+    await sweep(
+      await ctx.db
+        .query("presence")
+        .withIndex("by_event_lastSeenAt", (q) => q.eq("eventId", eventId))
+        .take(PURGE_BATCH),
+    );
+    await sweep(
+      await ctx.db
+        .query("messages")
+        .withIndex("by_event_sentAt", (q) => q.eq("eventId", eventId))
+        .take(PURGE_BATCH),
+    );
+    await sweep(
+      await ctx.db
+        .query("participants")
+        .withIndex("by_event", (q) => q.eq("eventId", eventId))
+        .take(PURGE_BATCH),
+    );
+
+    if (more) {
+      await ctx.scheduler.runAfter(0, internal.events.purgeEventData, { eventId });
+    }
   },
 });
