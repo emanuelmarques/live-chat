@@ -18,8 +18,9 @@ export async function getModeratorSessionToken(client: ConvexHttpClient): Promis
   } catch {
     // Already bootstrapped by an earlier test run — that's fine.
   }
-  const { sessionToken } = await client.mutation(api.auth.login, TEST_MODERATOR);
-  return sessionToken;
+  const result = await client.mutation(api.auth.login, TEST_MODERATOR);
+  if (!result.ok) throw new Error("Test moderator login failed.");
+  return result.sessionToken;
 }
 
 export async function createTestEvent(client: ConvexHttpClient, name: string) {

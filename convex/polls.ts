@@ -1,14 +1,31 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireModerator } from "./lib/requireModerator";
+import {
+  MAX_POLL_OPTION_LENGTH,
+  MAX_POLL_QUESTION_LENGTH,
+  assertMaxLength,
+} from "./lib/limits";
 
-function validatePollInput(question: string, options: string[]) {
-  if (question.trim().length === 0) {
+/** Validates and normalizes (trims) a poll's question and options. */
+function validatePollInput(rawQuestion: string, rawOptions: string[]) {
+  const question = rawQuestion.trim();
+  const options = rawOptions.map((o) => o.trim());
+  if (question.length === 0) {
     throw new Error("A poll needs a question.");
   }
+  assertMaxLength(question, MAX_POLL_QUESTION_LENGTH, "The question");
   if (options.length < 2 || options.length > 6) {
     throw new Error("A poll must have between 2 and 6 options.");
   }
+  if (options.some((o) => o.length === 0)) {
+    throw new Error("Poll options cannot be empty.");
+  }
+  for (const o of options) assertMaxLength(o, MAX_POLL_OPTION_LENGTH, "An option");
+  if (new Set(options.map((o) => o.toLowerCase())).size !== options.length) {
+    throw new Error("Poll options must be different from each other.");
+  }
+  return { question, options };
 }
 
 export const createAndStartPoll = mutation({
@@ -19,12 +36,15 @@ export const createAndStartPoll = mutation({
     options: v.array(v.string()),
     revealMode: v.union(v.literal("live"), v.literal("atEnd")),
   },
-  handler: async (ctx, { sessionToken, eventId, question, options, revealMode }) => {
+  handler: async (ctx, { sessionToken, eventId, question: rawQuestion, options: rawOptions, revealMode }) => {
     await requireModerator(ctx, sessionToken);
-    validatePollInput(question, options);
+    const { question, options } = validatePollInput(rawQuestion, rawOptions);
     const event = await ctx.db.get(eventId);
     if (event === null) {
       throw new Error("Event not found.");
+    }
+    if (event.status !== "active") {
+      throw new Error("This event has ended.");
     }
     if (event.activePollId !== null) {
       throw new Error("Another poll is already active for this event.");
@@ -52,9 +72,9 @@ export const createDraftPoll = mutation({
     options: v.array(v.string()),
     revealMode: v.union(v.literal("live"), v.literal("atEnd")),
   },
-  handler: async (ctx, { sessionToken, eventId, question, options, revealMode }) => {
+  handler: async (ctx, { sessionToken, eventId, question: rawQuestion, options: rawOptions, revealMode }) => {
     await requireModerator(ctx, sessionToken);
-    validatePollInput(question, options);
+    const { question, options } = validatePollInput(rawQuestion, rawOptions);
     const event = await ctx.db.get(eventId);
     if (event === null) {
       throw new Error("Event not found.");
@@ -161,8 +181,15 @@ export const castVote = mutation({
     if (optionIndex < 0 || optionIndex >= poll.options.length) {
       throw new Error("Invalid option.");
     }
+    const event = await ctx.db.get(poll.eventId);
+    if (event === null || event.status === "ended") {
+      throw new Error("This event has ended.");
+    }
     const participant = await ctx.db.get(participantId);
-    if (participant !== null && participant.kickedAt) {
+    if (participant === null || participant.eventId !== poll.eventId) {
+      throw new Error("Participant not found for this event.");
+    }
+    if (participant.kickedAt) {
       throw new Error("Kicked: you've been removed from this event by the moderator.");
     }
     const existing = await ctx.db
@@ -254,6 +281,11 @@ export const endPoll = mutation({
     }
     if (poll.status === "draft") {
       throw new Error("A prepared poll has not started; delete it instead.");
+    }
+    if (poll.status === "ended") {
+      // Already ended (double click / stale tab): don't rewrite endedAt, which
+      // decides which poll counts as "the most recent one".
+      return {};
     }
     await ctx.db.patch(pollId, { status: "ended", endedAt: Date.now() });
     const event = await ctx.db.get(poll.eventId);

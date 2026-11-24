@@ -1,18 +1,22 @@
-import { MessageReactions, type MessageReaction } from "./MessageReactions";
+import { MessageReactions } from "./MessageReactions";
+import { reactionKey, type ReactionsByMessage } from "../lib/useMessageReactions";
 
 export interface MessageRow {
   messageId: string;
-  participantId: string;
+  authorKey: string;
   authorDisplayName: string;
   content: string;
   replyTo: { messageId: string; deleted: boolean; authorDisplayName?: string; content?: string } | null;
   sentAt: number;
-  reactions?: MessageReaction[];
 }
 
 interface MessageListProps {
   messages: MessageRow[];
-  currentParticipantId?: string;
+  currentAuthorKey?: string;
+  /** Reaction counts per message id (see `useMessageReactions`). */
+  reactions?: ReactionsByMessage;
+  /** `reactionKey(messageId, emoji)` of the viewer's own reactions. */
+  myReactions?: ReadonlySet<string>;
   onToggleReaction?: (messageId: string, emoji: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (message: MessageRow) => void;
@@ -37,7 +41,9 @@ function formatTime(ms: number): string {
 
 export function MessageList({
   messages,
-  currentParticipantId,
+  currentAuthorKey,
+  reactions,
+  myReactions,
   onToggleReaction,
   onDelete,
   onReply,
@@ -48,12 +54,13 @@ export function MessageList({
   return (
     <ul className="msgs" aria-live="polite" aria-relevant="additions">
       {messages.map((message) => {
-        const isOwn = message.participantId === currentParticipantId;
+        const isOwn = message.authorKey === currentAuthorKey;
         const isHighlighted = message.messageId === highlightedMessageId;
         const canDelete = onDelete && (isOwn || canDeleteAny);
         return (
           <li
             key={message.messageId}
+            data-message-id={message.messageId}
             className={`msg${isOwn ? " msg--own" : ""}${isHighlighted ? " msg--highlighted" : ""}`}
           >
             <span
@@ -79,8 +86,10 @@ export function MessageList({
                 <span>{message.content}</span>
               </div>
               <MessageReactions
-                reactions={message.reactions ?? []}
-                currentParticipantId={currentParticipantId}
+                reactions={(reactions?.[message.messageId] ?? []).map((r) => ({
+                  ...r,
+                  mine: myReactions?.has(reactionKey(message.messageId, r.emoji)) ?? false,
+                }))}
                 onToggle={onToggleReaction ? (emoji) => onToggleReaction(message.messageId, emoji) : undefined}
               />
               {(onReply || onToggleHighlight || canDelete) && (
@@ -96,7 +105,16 @@ export function MessageList({
                     </button>
                   )}
                   {canDelete && (
-                    <button type="button" className="danger" onClick={() => onDelete(message.messageId)}>
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => {
+                        // The moderator view already asks its own confirmation.
+                        if (canDeleteAny || window.confirm("Delete this message? This can't be undone.")) {
+                          onDelete(message.messageId);
+                        }
+                      }}
+                    >
                       Delete
                     </button>
                   )}

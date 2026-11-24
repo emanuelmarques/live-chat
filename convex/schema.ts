@@ -20,6 +20,12 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_email", ["email"]),
 
+  // Failed moderator logins, for the lockout in auth.ts. Cleared on success.
+  loginAttempts: defineTable({
+    key: v.string(),
+    failedAt: v.number(),
+  }).index("by_key_failedAt", ["key", "failedAt"]),
+
   sessions: defineTable({
     moderatorId: v.id("moderators"),
     token: v.string(),
@@ -34,6 +40,9 @@ export default defineSchema({
     // Optional: participants that joined before this field existed have no
     // `kickedAt` at all. `undefined` and `null` both mean "not kicked".
     kickedAt: v.optional(v.union(v.number(), v.null())),
+    // Opaque public identity shown to other clients instead of `_id` (which is
+    // the participant's credential). Optional for rows that predate it.
+    publicKey: v.optional(v.string()),
   }).index("by_event", ["eventId"]),
 
   messages: defineTable({
@@ -49,6 +58,9 @@ export default defineSchema({
       v.literal("rejected"),
     ),
     deletedAt: v.union(v.number(), v.null()),
+    // Denormalized public identity of the author (see lib/authorKey.ts), so listMessages
+    // needn't read every participant on each re-run.
+    authorKey: v.optional(v.string()),
   })
     .index("by_event_sentAt", ["eventId", "sentAt"])
     .index("by_event_status", ["eventId", "moderationStatus"])
@@ -89,9 +101,17 @@ export default defineSchema({
     participantId: v.id("participants"),
     emoji: v.string(),
     createdAt: v.number(),
+    // Unused since reactions became aggregate counts; kept optional for old rows.
+    authorKey: v.optional(v.string()),
+    // sentAt of the reacted message (denormalized) so a client can ask for the
+    // reactions of just the messages it has loaded. Optional for old rows (see
+    // `backfillMessageSentAt`).
+    messageSentAt: v.optional(v.number()),
   })
     .index("by_event", ["eventId"])
-    .index("by_message_participant_emoji", ["messageId", "participantId", "emoji"]),
+    .index("by_event_messageSentAt", ["eventId", "messageSentAt"])
+    .index("by_message_participant_emoji", ["messageId", "participantId", "emoji"])
+    .index("by_participant", ["participantId"]),
 
   // Ephemeral Zoom-style flying reactions — not part of the chat transcript,
   // so they're pruned shortly after they're sent (see crons.ts) rather than

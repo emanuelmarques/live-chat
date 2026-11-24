@@ -6,6 +6,7 @@ import { TextField } from "../../../components/TextField";
 import { Button } from "../../../components/Button";
 import { EmptyState } from "../../../components/EmptyState";
 import { QrCode } from "../../../components/QrCode";
+import { MAX_EVENT_NAME_LENGTH } from "../../../lib/limits";
 
 function LinkRow({ label, hint, path }: { label: string; hint: string; path: string }) {
   const [copied, setCopied] = useState(false);
@@ -111,6 +112,7 @@ export function EventsPage() {
         <div style={{ flex: "1 1 260px" }}>
           <TextField
             label="New event name"
+            maxLength={MAX_EVENT_NAME_LENGTH}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required

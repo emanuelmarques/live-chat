@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { api } from "../../convex/_generated/api";
-import { createModeratorSession, newTestInstance } from "./testHelpers";
+import { createModeratorSession, listVisibleMessages, newTestInstance } from "./testHelpers";
 
 async function setupEventWithParticipant(t: ReturnType<typeof newTestInstance>) {
   const sessionToken = await createModeratorSession(t);
@@ -22,7 +22,7 @@ describe("moderation", () => {
 
     await t.mutation(api.messages.sendMessage, { eventId, participantId, content: "Hello there" });
 
-    const messages = await t.query(api.messages.listMessages, { eventId });
+    const messages = await listVisibleMessages(t, eventId);
     expect(messages).toHaveLength(1);
   });
 
@@ -37,7 +37,7 @@ describe("moderation", () => {
       content: "this has a BannedWord in it",
     });
 
-    const visible = await t.query(api.messages.listMessages, { eventId });
+    const visible = await listVisibleMessages(t, eventId);
     expect(visible).toHaveLength(0);
 
     const pending = await t.query(api.moderation.listPending, { sessionToken, eventId });
@@ -57,7 +57,7 @@ describe("moderation", () => {
     const [pending] = await t.query(api.moderation.listPending, { sessionToken, eventId });
     await t.mutation(api.moderation.approveMessage, { sessionToken, messageId: pending.messageId });
 
-    const visible = await t.query(api.messages.listMessages, { eventId });
+    const visible = await listVisibleMessages(t, eventId);
     expect(visible).toHaveLength(1);
     const own = await t.query(api.messages.listOwnPendingOrRejected, { eventId, participantId });
     expect(own).toHaveLength(0);
@@ -72,7 +72,7 @@ describe("moderation", () => {
     const [pending] = await t.query(api.moderation.listPending, { sessionToken, eventId });
     await t.mutation(api.moderation.rejectMessage, { sessionToken, messageId: pending.messageId });
 
-    const visible = await t.query(api.messages.listMessages, { eventId });
+    const visible = await listVisibleMessages(t, eventId);
     expect(visible).toHaveLength(0);
     const own = await t.query(api.messages.listOwnPendingOrRejected, { eventId, participantId });
     expect(own[0].moderationStatus).toBe("rejected");
@@ -94,7 +94,7 @@ describe("moderation", () => {
     expect(pending).toHaveLength(1);
     expect(pending[0].content).toBe("bannedword one");
 
-    const visible = await t.query(api.messages.listMessages, { eventId });
+    const visible = await listVisibleMessages(t, eventId);
     expect(visible.map((m) => m.content)).toEqual(["bannedword two"]);
   });
 
@@ -131,7 +131,7 @@ describe("moderator chat view: delete and highlight", () => {
 
     const highlighted = await t.query(api.messages.getHighlightedMessage, { eventId });
     expect(highlighted?.messageId).toBe(b);
-    const chat = await t.query(api.messages.listMessages, { eventId });
+    const chat = await listVisibleMessages(t, eventId);
     expect(chat.map((m) => m.content)).toEqual(["first", "second"]);
 
     await t.mutation(api.moderation.clearHighlight, { sessionToken, eventId });
@@ -144,7 +144,7 @@ describe("moderator chat view: delete and highlight", () => {
     await t.mutation(api.moderation.highlightMessage, { sessionToken, messageId: a });
     await t.mutation(api.moderation.deleteMessageAsModerator, { sessionToken, messageId: a });
 
-    expect(await t.query(api.messages.listMessages, { eventId })).toHaveLength(0);
+    expect(await listVisibleMessages(t, eventId)).toHaveLength(0);
     expect(await t.query(api.messages.getHighlightedMessage, { eventId })).toBeNull();
   });
 

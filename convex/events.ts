@@ -1,6 +1,7 @@
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { requireModerator } from "./lib/requireModerator";
+import { MAX_EVENT_NAME_LENGTH, assertMaxLength } from "./lib/limits";
 
 // Uppercase letters and digits, minus the pairs people most often misread
 // (I/1/L, O/0) — chosen so the code can be read aloud or typed by hand as a
@@ -34,9 +35,14 @@ export const createEvent = mutation({
   args: { sessionToken: v.string(), name: v.string() },
   handler: async (ctx, { sessionToken, name }) => {
     await requireModerator(ctx, sessionToken);
+    const trimmedName = name.trim();
+    if (trimmedName.length === 0) {
+      throw new Error("An event needs a name.");
+    }
+    assertMaxLength(trimmedName, MAX_EVENT_NAME_LENGTH, "The event name");
     const joinSlug = await generateUniqueJoinSlug(ctx);
     const eventId = await ctx.db.insert("events", {
-      name,
+      name: trimmedName,
       status: "active",
       joinSlug,
       createdAt: Date.now(),
@@ -108,7 +114,12 @@ export const endEvent = mutation({
     if (event.status === "ended") {
       return {};
     }
-    await ctx.db.patch(eventId, { status: "ended", endedAt: Date.now() });
+    const now = Date.now();
+    // A poll can't outlive its event: close it so nobody sees "poll in progress".
+    if (event.activePollId !== null) {
+      await ctx.db.patch(event.activePollId, { status: "ended", endedAt: now });
+    }
+    await ctx.db.patch(eventId, { status: "ended", endedAt: now, activePollId: null });
     return {};
   },
 });

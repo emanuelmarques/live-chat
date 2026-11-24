@@ -14,6 +14,9 @@ test.describe("Polish: admin accessibility (FR-036)", () => {
   test("every admin screen passes an automated axe scan and the events form is keyboard operable", async ({
     page,
   }) => {
+    // Four axe scans over a dev deployment that accumulates events (the Events
+    // page renders one QR code per event) can exceed the 30s default.
+    test.setTimeout(90_000);
     // See accessibility-chat.spec.ts: skips the list's CSS entrance animation
     // so axe reads settled colors, not a transient mid-fade-in frame.
     await page.emulateMedia({ reducedMotion: "reduce" });

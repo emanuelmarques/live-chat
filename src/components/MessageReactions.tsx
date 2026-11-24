@@ -4,17 +4,18 @@ import { useDismissablePopover } from "../lib/useDismissablePopover";
 
 export interface MessageReaction {
   emoji: string;
-  participantIds: string[];
+  count: number;
+  /** Whether the viewer is one of the people who reacted with this emoji. */
+  mine: boolean;
 }
 
 interface MessageReactionsProps {
   reactions: MessageReaction[];
-  currentParticipantId?: string;
   onToggle?: (emoji: string) => void;
 }
 
 /** Reaction chips under a message, plus (when interactive) an "add reaction" picker. */
-export function MessageReactions({ reactions, currentParticipantId, onToggle }: MessageReactionsProps) {
+export function MessageReactions({ reactions, onToggle }: MessageReactionsProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   useDismissablePopover(containerRef, open, () => setOpen(false));
@@ -23,9 +24,8 @@ export function MessageReactions({ reactions, currentParticipantId, onToggle }: 
 
   return (
     <div className="msg-reactions" ref={containerRef}>
-      {reactions.map(({ emoji, participantIds }) => {
-        const mine = currentParticipantId !== undefined && participantIds.includes(currentParticipantId);
-        const label = `${emoji} ${participantIds.length}`;
+      {reactions.map(({ emoji, count, mine }) => {
+        const label = `${emoji} ${count}`;
         return onToggle ? (
           <button
             key={emoji}
@@ -35,11 +35,11 @@ export function MessageReactions({ reactions, currentParticipantId, onToggle }: 
             aria-label={`${label}${mine ? " (you reacted)" : ""}`}
             onClick={() => onToggle(emoji)}
           >
-            <span aria-hidden="true">{emoji}</span> {participantIds.length}
+            <span aria-hidden="true">{emoji}</span> {count}
           </button>
         ) : (
           <span key={emoji} className="msg-reactions__chip" aria-label={label}>
-            <span aria-hidden="true">{emoji}</span> {participantIds.length}
+            <span aria-hidden="true">{emoji}</span> {count}
           </span>
         );
       })}

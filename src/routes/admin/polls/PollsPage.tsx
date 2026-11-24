@@ -6,6 +6,7 @@ import { Button } from "../../../components/Button";
 import { TextField } from "../../../components/TextField";
 import { PollBanner } from "../../../components/PollBanner";
 import { PollHistory, type ClonedPoll } from "./PollHistory";
+import { MAX_POLL_OPTION_LENGTH, MAX_POLL_QUESTION_LENGTH } from "../../../lib/limits";
 
 export function PollsPage() {
   const { eventId: eventIdParam } = useParams<{ eventId: string }>();
@@ -27,6 +28,22 @@ export function PollsPage() {
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [revealMode, setRevealMode] = useState<"live" | "atEnd">("live");
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  /** Runs a moderator action; shows the server's message instead of failing silently. */
+  async function run(action: () => Promise<unknown>): Promise<boolean> {
+    setActionError(null);
+    try {
+      await action();
+      return true;
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "";
+      // Convex wraps server errors ("... Uncaught Error: <message>"); keep just ours.
+      const match = raw.match(/Uncaught Error: (.+?)(?:\n|$)/);
+      setActionError(match?.[1] ?? "Something went wrong. Please try again.");
+      return false;
+    }
+  }
 
   if (!eventIdParam) {
     return null;
@@ -57,13 +74,15 @@ export function PollsPage() {
     ) {
       return;
     }
-    if (hasActive) {
-      const { pollId } = await createDraft({ sessionToken, eventId, ...input });
-      await activate({ sessionToken, pollId, replaceActive: true });
-    } else {
-      await createAndStart({ sessionToken, eventId, ...input });
-    }
-    resetForm();
+    const ok = await run(async () => {
+      if (hasActive) {
+        const { pollId } = await createDraft({ sessionToken, eventId, ...input });
+        await activate({ sessionToken, pollId, replaceActive: true });
+      } else {
+        await createAndStart({ sessionToken, eventId, ...input });
+      }
+    });
+    if (ok) resetForm();
   }
 
   function handleClone(poll: ClonedPoll) {
@@ -75,8 +94,8 @@ export function PollsPage() {
   async function handleSaveDraft() {
     const input = readForm();
     if (!input) return;
-    await createDraft({ sessionToken, eventId, ...input });
-    resetForm();
+    const ok = await run(() => createDraft({ sessionToken, eventId, ...input }));
+    if (ok) resetForm();
   }
 
   async function handleActivate(pollId: Id<"polls">) {
@@ -89,12 +108,12 @@ export function PollsPage() {
     ) {
       return;
     }
-    await activate({ sessionToken, pollId, replaceActive: hasActive });
+    await run(() => activate({ sessionToken, pollId, replaceActive: hasActive }));
   }
 
   async function handleDeleteDraft(pollId: Id<"polls">) {
     if (!window.confirm("Delete this prepared poll?")) return;
-    await deleteDraft({ sessionToken, pollId });
+    await run(() => deleteDraft({ sessionToken, pollId }));
   }
 
   if (activePoll === undefined || drafts === undefined || event === undefined) {
@@ -140,12 +159,15 @@ export function PollsPage() {
           {activePoll.revealMode === "atEnd" && !activePoll.resultsVisible && (
             <Button
               variant="dark"
-              onClick={() => reveal({ sessionToken, pollId: activePoll.pollId })}
+              onClick={() => run(() => reveal({ sessionToken, pollId: activePoll.pollId }))}
             >
               Reveal results now
             </Button>
           )}
-          <Button variant="danger" onClick={() => end({ sessionToken, pollId: activePoll.pollId })}>
+          <Button
+            variant="danger"
+            onClick={() => run(() => end({ sessionToken, pollId: activePoll.pollId }))}
+          >
             End poll
           </Button>
         </div>
@@ -158,6 +180,7 @@ export function PollsPage() {
     <form onSubmit={handleCreate} className="card card--lift stack">
       <TextField
         label="Question"
+        maxLength={MAX_POLL_QUESTION_LENGTH}
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
         required
@@ -166,6 +189,7 @@ export function PollsPage() {
         <TextField
           key={i}
           label={`Option ${i + 1}`}
+          maxLength={MAX_POLL_OPTION_LENGTH}
           value={opt}
           onChange={(e) =>
             setOptions((prev) => prev.map((o, idx) => (idx === i ? e.target.value : o)))
@@ -233,6 +257,11 @@ export function PollsPage() {
     <div className="polls-layout">
       <div className="stack polls-layout__main">
         <h1 style={{ margin: 0 }}>Polls</h1>
+        {actionError && (
+          <p role="alert" className="alert">
+            {actionError}
+          </p>
+        )}
         <div role="tablist" aria-label="Polls sections" className="row">
           <Button
             role="tab"

@@ -2,6 +2,7 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireModerator } from "./lib/requireModerator";
 import { insertMissingDefaultTerms } from "./lib/defaultBlocklist";
+import { MAX_BLOCKLIST_TERM_LENGTH, assertMaxLength } from "./lib/limits";
 
 /** Adds the default block-list terms the moderator doesn't already have. */
 export const addDefaultBlockList = mutation({
@@ -49,6 +50,7 @@ export const addBlockListEntry = mutation({
     if (trimmed.length === 0) {
       throw new Error("A non-empty term is required.");
     }
+    assertMaxLength(trimmed, MAX_BLOCKLIST_TERM_LENGTH, "The term");
     const entryId = await ctx.db.insert("blockListEntries", {
       moderatorId,
       term: trimmed,

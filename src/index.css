@@ -1043,8 +1043,8 @@ textarea:focus-visible {
 }
 
 .msg__actions button {
-  min-height: 32px;
-  padding: 0 0.5rem;
+  min-height: 44px; /* comfortable touch target: Reply/Delete sit side by side */
+  padding: 0 0.75rem;
   border: 0;
   background: none;
   font-size: 0.75rem;
@@ -1084,7 +1084,9 @@ textarea:focus-visible {
 
 button.msg-reactions__chip {
   cursor: pointer;
-  min-height: 32px;
+  min-height: 40px;
+  min-width: 44px;
+  justify-content: center;
 }
 
 .msg-reactions__chip--mine {
@@ -1120,6 +1122,7 @@ button.msg-reactions__chip {
   background: repeating-linear-gradient(135deg, var(--paper) 0 8px, var(--sand) 8px 16px);
   max-width: 300px;
   margin-left: auto;
+  overflow-wrap: anywhere;
 }
 
 .pending__status {
@@ -2283,4 +2286,31 @@ button.poll__option:disabled {
     max-height: calc(100vh - 2rem);
     overflow-y: auto;
   }
+}
+
+/* History is loaded on demand at the top of the chat; scroll position is
+   preserved by useChatScroll, so the browser's own anchoring must stay out of it. */
+.chat__scroll {
+  overflow-anchor: none;
+}
+
+.chat__older {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-bottom: 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.chat__older button {
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }

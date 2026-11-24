@@ -115,13 +115,13 @@ describe("participants", () => {
 
     expect(
       await t.query(api.participants.getParticipantStatus, { eventId, participantId }),
-    ).toEqual({ kicked: false });
+    ).toMatchObject({ kicked: false });
 
     await t.mutation(api.participants.kickParticipant, { sessionToken, participantId });
 
     expect(
       await t.query(api.participants.getParticipantStatus, { eventId, participantId }),
-    ).toEqual({ kicked: true });
+    ).toMatchObject({ kicked: true });
     const list = await t.query(api.participants.listParticipants, { sessionToken, eventId });
     expect(list.find((p) => p.participantId === participantId)?.kickedAt).not.toBeNull();
   });

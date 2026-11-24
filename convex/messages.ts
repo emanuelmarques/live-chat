@@ -1,7 +1,10 @@
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import type { Id } from "./_generated/dataModel";
 import { matchesAnyTerm } from "./lib/blocklist";
+import { MAX_MESSAGE_LENGTH, assertMaxLength } from "./lib/limits";
+import { authorKey } from "./lib/authorKey";
 
 const RATE_LIMIT_WINDOW_MS = 10_000;
 const RATE_LIMIT_MAX_MESSAGES = 5;
@@ -33,6 +36,7 @@ export const sendMessage = mutation({
     if (trimmed.length === 0) {
       throw new Error("Message content is required.");
     }
+    assertMaxLength(trimmed, MAX_MESSAGE_LENGTH, "Your message");
     const event = await ctx.db.get(eventId);
     if (event === null || event.status === "ended") {
       throw new Error("This event has ended.");
@@ -61,6 +65,7 @@ export const sendMessage = mutation({
       // (constitution Principle V — only a moderator mutation can reject).
       moderationStatus: isBlocked ? "pending" : "visible",
       deletedAt: null,
+      authorKey: authorKey(participant),
     });
     return { messageId };
   },
@@ -84,33 +89,28 @@ export const deleteMessage = mutation({
   },
 });
 
+// Largest page a client may ask for, whatever it sends.
+const MAX_PAGE_SIZE = 100;
+
+/**
+ * One page of the visible chat, NEWEST first (clients reverse it for display and
+ * load older pages on demand with `usePaginatedQuery`). Reactions are a separate
+ * query (`listMessageReactions`) so a reaction doesn't re-send every message.
+ */
 export const listMessages = query({
-  args: { eventId: v.id("events") },
-  handler: async (ctx, { eventId }) => {
-    const all = await ctx.db
+  args: { eventId: v.id("events"), paginationOpts: paginationOptsValidator },
+  handler: async (ctx, { eventId, paginationOpts }) => {
+    const result = await ctx.db
       .query("messages")
       .withIndex("by_event_sentAt", (q) => q.eq("eventId", eventId))
-      .collect();
+      .order("desc")
+      .filter((q) =>
+        q.and(q.eq(q.field("moderationStatus"), "visible"), q.eq(q.field("deletedAt"), null)),
+      )
+      .paginate({ ...paginationOpts, numItems: Math.min(paginationOpts.numItems, MAX_PAGE_SIZE) });
 
-    const byId = new Map(all.map((m) => [m._id, m]));
-
-    const reactionRows = await ctx.db
-      .query("messageReactions")
-      .withIndex("by_event", (q) => q.eq("eventId", eventId))
-      .collect();
-    // messageId -> emoji -> participantIds (insertion order keeps emoji order stable)
-    const reactionsByMessage = new Map<string, Map<string, string[]>>();
-    for (const r of reactionRows) {
-      const perEmoji = reactionsByMessage.get(r.messageId) ?? new Map<string, string[]>();
-      const ids = perEmoji.get(r.emoji) ?? [];
-      ids.push(r.participantId);
-      perEmoji.set(r.emoji, ids);
-      reactionsByMessage.set(r.messageId, perEmoji);
-    }
-
-    return all
-      .filter((m) => m.moderationStatus === "visible" && m.deletedAt === null)
-      .map((m) => {
+    const page = await Promise.all(
+      result.page.map(async (m) => {
         let replyTo: {
           messageId: string;
           deleted: boolean;
@@ -119,11 +119,10 @@ export const listMessages = query({
         } | null = null;
 
         if (m.replyToMessageId !== null) {
-          const original = byId.get(m.replyToMessageId);
+          // The quoted message may be on an older page, so look it up directly.
+          const original = await ctx.db.get(m.replyToMessageId);
           const originalIsVisible =
-            original !== undefined &&
-            original.deletedAt === null &&
-            original.moderationStatus === "visible";
+            original !== null && original.deletedAt === null && original.moderationStatus === "visible";
           replyTo = originalIsVisible
             ? {
                 messageId: original._id,
@@ -136,17 +135,15 @@ export const listMessages = query({
 
         return {
           messageId: m._id,
-          participantId: m.participantId,
+          authorKey: m.authorKey ?? "unknown",
           authorDisplayName: m.authorDisplayName,
           content: m.content,
           replyTo,
           sentAt: m.sentAt,
-          reactions: [...(reactionsByMessage.get(m._id) ?? [])].map(([emoji, participantIds]) => ({
-            emoji,
-            participantIds,
-          })),
         };
-      });
+      }),
+    );
+    return { ...result, page };
   },
 });
 

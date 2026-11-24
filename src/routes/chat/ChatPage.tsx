@@ -1,11 +1,16 @@
-import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { useQuery, useMutation, api, type Id } from "../../lib/convexClient";
 import { getStoredParticipant } from "../../lib/participant";
 import { hasVotedInPoll, markPollVoted } from "../../lib/pollVotes";
 import { useEmojiComposer } from "../../lib/useEmojiComposer";
+import { MAX_MESSAGE_LENGTH } from "../../lib/limits";
 import { useReactionFlights } from "../../lib/useReactionFlights";
+import { usePagedMessages } from "../../lib/usePagedMessages";
+import { useMessageReactions } from "../../lib/useMessageReactions";
+import { useChatScroll } from "../../lib/useChatScroll";
 import { MessageList, type MessageRow } from "../../components/MessageList";
+import { LoadOlderMessages } from "../../components/LoadOlderMessages";
 import { PollBanner } from "../../components/PollBanner";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
@@ -23,14 +28,19 @@ export function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const [reactionError, setReactionError] = useState<string | null>(null);
   const [hiddenPollId, setHiddenPollId] = useState<string | null>(null);
+  const [voteError, setVoteError] = useState<string | null>(null);
+  const [, setVoteTick] = useState(0);
   const composerWrapRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const hasScrolledToLatest = useRef(false);
 
   const info = useQuery(api.events.getJoinInfo, joinSlug ? { joinSlug } : "skip");
-  const messages = useQuery(api.messages.listMessages, info ? { eventId: info.eventId } : "skip");
+  const { messages, status: messagesStatus, loadOlder } = usePagedMessages(info?.eventId);
   const reactions = useQuery(api.reactions.listRecentReactions, info ? { eventId: info.eventId } : "skip");
   const participantForQuery = joinSlug ? getStoredParticipant(joinSlug) : null;
+  const { reactions: messageReactions, myReactions } = useMessageReactions(
+    info?.eventId,
+    messages?.[0]?.sentAt,
+    participantForQuery ? (participantForQuery.participantId as Id<"participants">) : undefined,
+  );
   const ownPendingOrRejected = useQuery(
     api.messages.listOwnPendingOrRejected,
     info && participantForQuery
@@ -69,19 +79,9 @@ export function ChatPage() {
   } = useEmojiComposer(content, setContent);
   useDismissablePopover(composerWrapRef, suggestions.length > 0, closeSuggestions);
 
-  // Jump straight to the most recent messages on open, and keep sticking to
-  // the bottom as new ones arrive — unless the participant has scrolled up
-  // to read history, in which case an incoming message shouldn't yank them
-  // back down.
-  useLayoutEffect(() => {
-    const el = scrollRef.current;
-    if (!el || !messages) return;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-    if (!hasScrolledToLatest.current || nearBottom) {
-      el.scrollTop = el.scrollHeight;
-      hasScrolledToLatest.current = true;
-    }
-  }, [messages]);
+  // Open at the newest message, follow new ones unless the participant scrolled
+  // up to read history, and load older messages as they scroll to the top.
+  const { scrollRef, topRef, onScroll } = useChatScroll(messages, messagesStatus, loadOlder, messageReactions);
 
   if (!joinSlug) {
     return <main><EmptyState>Invalid link.</EmptyState></main>;
@@ -90,11 +90,13 @@ export function ChatPage() {
   if (!participant) {
     return <Navigate to={`/join/${joinSlug}`} replace />;
   }
-  if (info === undefined || messages === undefined) {
-    return <main><p role="status">Loading…</p></main>;
-  }
+  // `info === null` must be checked before waiting on `messages`: that query is
+  // skipped while the event is unknown, so it would stay undefined forever.
   if (info === null) {
     return <EventNotFound code={joinSlug} />;
+  }
+  if (info === undefined || messages === undefined) {
+    return <main><p role="status">Loading…</p></main>;
   }
   if (info.status === "ended") {
     return <main><EmptyState>This event has ended.</EmptyState></main>;
@@ -127,20 +129,40 @@ export function ChatPage() {
   }
 
   async function handleDelete(messageId: string) {
-    await deleteMessage({
-      messageId: messageId as Id<"messages">,
-      participantId: participant!.participantId as Id<"participants">,
-    });
+    try {
+      await deleteMessage({
+        messageId: messageId as Id<"messages">,
+        participantId: participant!.participantId as Id<"participants">,
+      });
+    } catch {
+      setError("Couldn't delete that message. Please try again.");
+    }
   }
 
   async function handleVote(optionIndex: number) {
     if (!activePoll) return;
-    await castVote({
-      pollId: activePoll.pollId as Id<"polls">,
-      participantId: participant!.participantId as Id<"participants">,
-      optionIndex,
-    });
-    markPollVoted(activePoll.pollId);
+    setVoteError(null);
+    try {
+      await castVote({
+        pollId: activePoll.pollId as Id<"polls">,
+        participantId: participant!.participantId as Id<"participants">,
+        optionIndex,
+      });
+      markPollVoted(activePoll.pollId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("already voted")) {
+        // Voted from another device/tab (or storage was cleared): sync the local flag.
+        markPollVoted(activePoll.pollId);
+      } else if (message.includes("no longer accepting")) {
+        setVoteError("This poll just closed.");
+      } else {
+        setVoteError("Couldn't register your vote. Please try again.");
+      }
+    } finally {
+      // The vote flag lives in localStorage, so force a re-render to show "You voted".
+      setVoteTick((n) => n + 1);
+    }
   }
 
   async function handleToggleMessageReaction(messageId: string, emoji: string) {
@@ -179,7 +201,9 @@ export function ChatPage() {
         <div className="mono-label" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--live-text)" }}>
           <span className="live-dot" aria-hidden="true" />
           Live
-          <span style={{ color: "var(--muted)" }}>· you are {participant.displayName}</span>
+          <span style={{ color: "var(--muted)", minWidth: 0, overflowWrap: "anywhere" }}>
+            · you are {participant.displayName}
+          </span>
         </div>
         <h1 className="chat__title">{info.name}</h1>
       </header>
@@ -203,14 +227,22 @@ export function ChatPage() {
                 onVote={handleVote}
                 hasVoted={hasVotedInPoll(activePoll.pollId)}
               />
+              {voteError && (
+                <p role="alert" className="alert" style={{ marginTop: "0.5rem" }}>
+                  {voteError}
+                </p>
+              )}
             </div>
           )}
         </div>
       )}
-      <div className="chat__scroll" ref={scrollRef}>
+      <div className="chat__scroll" ref={scrollRef} onScroll={onScroll}>
+        <LoadOlderMessages status={messagesStatus} onLoad={loadOlder} sentinelRef={topRef} />
         <MessageList
           messages={messages}
-          currentParticipantId={participant.participantId}
+          currentAuthorKey={participantStatus?.authorKey}
+          reactions={messageReactions}
+          myReactions={myReactions}
           onToggleReaction={handleToggleMessageReaction}
           onDelete={handleDelete}
           onReply={(message) => setReplyTo(message)}
@@ -287,6 +319,7 @@ export function ChatPage() {
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message…"
+                maxLength={MAX_MESSAGE_LENGTH}
                 autoComplete="off"
                 role="combobox"
                 aria-expanded={suggestions.length > 0}

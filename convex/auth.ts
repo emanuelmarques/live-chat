@@ -5,6 +5,16 @@ import { insertMissingDefaultTerms } from "./lib/defaultBlocklist";
 
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
+// Brute-force protection (OWASP guidance): lock the account after 5 failed
+// attempts inside a 15-minute window; it unlocks when the oldest of those
+// failures ages out. Keyed by email because Convex mutations don't see client IPs.
+export const MAX_FAILED_LOGINS = 5;
+export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 /**
  * One-time setup: creates the single v1 moderator account. Guarded so it can
  * only succeed while no moderator exists yet (constitution Principle I — the
@@ -19,7 +29,7 @@ export const bootstrapModerator = mutation({
     }
     const passwordHash = await hashPassword(password);
     const moderatorId = await ctx.db.insert("moderators", {
-      email,
+      email: normalizeEmail(email),
       passwordHash,
       createdAt: Date.now(),
     });
@@ -28,17 +38,45 @@ export const bootstrapModerator = mutation({
   },
 });
 
+/**
+ * Returns a result instead of throwing on bad credentials: a thrown error
+ * rolls the whole mutation back, which would also discard the failed-attempt
+ * record that the lockout depends on.
+ */
 export const login = mutation({
   args: { email: v.string(), password: v.string() },
   handler: async (ctx, { email, password }) => {
-    const moderator = await ctx.db
-      .query("moderators")
-      .withIndex("by_email", (q) => q.eq("email", email))
-      .first();
-    if (moderator === null || !(await verifyPassword(password, moderator.passwordHash))) {
-      throw new Error("Invalid email or password.");
-    }
+    const key = normalizeEmail(email);
     const now = Date.now();
+
+    const attempts = await ctx.db
+      .query("loginAttempts")
+      .withIndex("by_key_failedAt", (q) => q.eq("key", key).gt("failedAt", now - LOGIN_WINDOW_MS))
+      .collect();
+    if (attempts.length >= MAX_FAILED_LOGINS) {
+      const unlockAt = attempts[0].failedAt + LOGIN_WINDOW_MS;
+      return {
+        ok: false as const,
+        reason: "locked" as const,
+        retryAfterSeconds: Math.max(1, Math.ceil((unlockAt - now) / 1000)),
+      };
+    }
+
+    // Case-insensitive match (older accounts may have been stored with capitals).
+    const moderators = await ctx.db.query("moderators").collect();
+    const moderator = moderators.find((m) => normalizeEmail(m.email) === key) ?? null;
+    if (moderator === null || !(await verifyPassword(password, moderator.passwordHash))) {
+      await ctx.db.insert("loginAttempts", { key, failedAt: now });
+      return { ok: false as const, reason: "invalid" as const };
+    }
+
+    // Success: forget earlier failures, and drop stale rows for this key.
+    const all = await ctx.db
+      .query("loginAttempts")
+      .withIndex("by_key_failedAt", (q) => q.eq("key", key))
+      .collect();
+    await Promise.all(all.map((a) => ctx.db.delete(a._id)));
+
     const token = crypto.randomUUID();
     await ctx.db.insert("sessions", {
       moderatorId: moderator._id,
@@ -46,7 +84,7 @@ export const login = mutation({
       createdAt: now,
       expiresAt: now + SESSION_DURATION_MS,
     });
-    return { sessionToken: token };
+    return { ok: true as const, sessionToken: token };
   },
 });
 

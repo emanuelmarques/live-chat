@@ -18,6 +18,8 @@ test.describe("US1: accessibility (FR-036)", () => {
     const { joinSlug } = await createTestEvent(client, `Accessibility ${Date.now()}`);
 
     await page.goto(`/join/${joinSlug}`);
+    // Wait for the event to load: scanning the "Loading…" placeholder has no <h1> and flakes.
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const joinScan = await new AxeBuilder({ page }).analyze();
     expect(joinScan.violations).toEqual([]);
 

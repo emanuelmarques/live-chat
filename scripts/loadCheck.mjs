@@ -19,7 +19,9 @@ async function main() {
   } catch {
     // Already bootstrapped by an earlier test/script run — that's fine.
   }
-  const { sessionToken } = await client.mutation(api.auth.login, credentials);
+  const login = await client.mutation(api.auth.login, credentials);
+  if (!login.ok) throw new Error(`Moderator login failed (${login.reason}).`);
+  const { sessionToken } = login;
 
   const { eventId } = await client.mutation(api.events.createEvent, {
     sessionToken,
@@ -51,7 +53,13 @@ async function main() {
   const propagationStart = Date.now();
   let visible = [];
   while (visible.length < PARTICIPANT_COUNT && Date.now() - propagationStart < 10_000) {
-    visible = await client.query(api.messages.listMessages, { eventId });
+    visible = [];
+    for (let cursor = null; ; ) {
+      const res = await client.query(api.messages.listMessages, { eventId, paginationOpts: { numItems: 100, cursor } });
+      visible.push(...res.page);
+      if (res.isDone) break;
+      cursor = res.continueCursor;
+    }
   }
   const propagationMs = Date.now() - propagationStart;
 

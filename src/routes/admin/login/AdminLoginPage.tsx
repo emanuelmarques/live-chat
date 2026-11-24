@@ -19,11 +19,22 @@ export function AdminLoginPage() {
     event.preventDefault();
     setError(null);
     try {
-      const { sessionToken } = await login({ email, password });
-      storeSessionToken(sessionToken);
+      const result = await login({ email, password });
+      if (!result.ok) {
+        if (result.reason === "locked") {
+          const minutes = Math.ceil(result.retryAfterSeconds / 60);
+          setError(
+            `Too many failed attempts. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+          );
+        } else {
+          setError("Invalid email or password.");
+        }
+        return;
+      }
+      storeSessionToken(result.sessionToken);
       window.location.assign("/admin/events");
     } catch {
-      setError("Invalid email or password.");
+      setError("Couldn't log in right now. Please try again.");
     }
   }
 

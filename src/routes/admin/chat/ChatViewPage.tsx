@@ -1,8 +1,11 @@
-import { useLayoutEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, api, type Id } from "../../../lib/convexClient";
 import { getStoredSessionToken } from "../../../lib/session";
+import { usePagedMessages } from "../../../lib/usePagedMessages";
+import { useMessageReactions } from "../../../lib/useMessageReactions";
+import { useChatScroll } from "../../../lib/useChatScroll";
 import { MessageList, type MessageRow } from "../../../components/MessageList";
+import { LoadOlderMessages } from "../../../components/LoadOlderMessages";
 import { EmptyState } from "../../../components/EmptyState";
 
 /**
@@ -13,25 +16,16 @@ export function ChatViewPage() {
   const { eventId: eventIdParam } = useParams<{ eventId: string }>();
   const eventId = eventIdParam as Id<"events">;
   const sessionToken = getStoredSessionToken() ?? "";
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const hasScrolledToLatest = useRef(false);
 
-  const messages = useQuery(api.messages.listMessages, { eventId });
+  const { messages, status, loadOlder } = usePagedMessages(eventIdParam ? eventId : undefined);
+  const { reactions } = useMessageReactions(eventIdParam ? eventId : undefined, messages?.[0]?.sentAt);
   const highlighted = useQuery(api.messages.getHighlightedMessage, { eventId });
   const highlight = useMutation(api.moderation.highlightMessage);
   const clearHighlight = useMutation(api.moderation.clearHighlight);
   const remove = useMutation(api.moderation.deleteMessageAsModerator);
 
-  // Same stick-to-bottom behaviour as the participant chat.
-  useLayoutEffect(() => {
-    const el = scrollRef.current;
-    if (!el || !messages) return;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-    if (!hasScrolledToLatest.current || nearBottom) {
-      el.scrollTop = el.scrollHeight;
-      hasScrolledToLatest.current = true;
-    }
-  }, [messages]);
+  // Same scrolling behaviour as the participant chat.
+  const { scrollRef, topRef, onScroll } = useChatScroll(messages, status, loadOlder, reactions);
 
   if (!eventIdParam) {
     return <EmptyState>No event selected.</EmptyState>;
@@ -60,9 +54,11 @@ export function ChatViewPage() {
       {messages === undefined && <p role="status">Loading…</p>}
       {messages && messages.length === 0 && <EmptyState>No messages yet.</EmptyState>}
       {messages && messages.length > 0 && (
-        <div className="chat__scroll" ref={scrollRef}>
+        <div className="chat__scroll" ref={scrollRef} onScroll={onScroll}>
+          <LoadOlderMessages status={status} onLoad={loadOlder} sentinelRef={topRef} />
           <MessageList
             messages={messages}
+            reactions={reactions}
             canDeleteAny
             onDelete={handleDelete}
             onToggleHighlight={handleToggleHighlight}

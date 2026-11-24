@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { useQuery, useMutation, api } from "../../lib/convexClient";
 import { getStoredParticipant, joinOncePerBrowser, participantStorageKey } from "../../lib/participant";
+import { MAX_DISPLAY_NAME_LENGTH } from "../../lib/limits";
 import { TextField } from "../../components/TextField";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
@@ -80,6 +81,8 @@ export function JoinPage() {
             onChange={(e) => setDisplayName(e.target.value)}
             required
             autoFocus
+            maxLength={MAX_DISPLAY_NAME_LENGTH}
+            autoComplete="nickname"
           />
           {error && (
             <p role="alert" className="alert">

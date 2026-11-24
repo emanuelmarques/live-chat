@@ -36,7 +36,7 @@ export function PollBanner({ poll, onVote, hasVoted }: PollBannerProps) {
             </>
           );
           return (
-            <li key={option}>
+            <li key={index}>
               {canVote ? (
                 <button
                   type="button"

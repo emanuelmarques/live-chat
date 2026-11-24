@@ -5,6 +5,7 @@ import { getStoredSessionToken } from "../../../lib/session";
 import { Button } from "../../../components/Button";
 import { TextField } from "../../../components/TextField";
 import { EmptyState } from "../../../components/EmptyState";
+import { MAX_BLOCKLIST_TERM_LENGTH } from "../../../lib/limits";
 
 export function ModerationPage() {
   const { eventId: eventIdParam } = useParams<{ eventId: string }>();
@@ -85,6 +86,7 @@ export function ModerationPage() {
             <div style={{ flex: 1 }}>
               <TextField
                 label="Add a term or phrase"
+                maxLength={MAX_BLOCKLIST_TERM_LENGTH}
                 value={newTerm}
                 onChange={(e) => setNewTerm(e.target.value)}
               />

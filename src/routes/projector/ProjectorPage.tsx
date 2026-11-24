@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, api } from "../../lib/convexClient";
 import { useReactionFlights } from "../../lib/useReactionFlights";
+import { usePagedMessages } from "../../lib/usePagedMessages";
+import { useMessageReactions } from "../../lib/useMessageReactions";
 import { MessageList } from "../../components/MessageList";
 import { PollBanner } from "../../components/PollBanner";
 import { EmptyState } from "../../components/EmptyState";
@@ -39,7 +41,9 @@ export function ProjectorPage() {
   }
 
   const info = useQuery(api.events.getJoinInfo, joinSlug ? { joinSlug } : "skip");
-  const messages = useQuery(api.messages.listMessages, info ? { eventId: info.eventId } : "skip");
+  // Only the newest page: the projector shows the tail of the conversation.
+  const { messages } = usePagedMessages(info?.eventId);
+  const { reactions: messageReactions } = useMessageReactions(info?.eventId, messages?.[0]?.sentAt);
   const highlighted = useQuery(
     api.messages.getHighlightedMessage,
     info ? { eventId: info.eventId } : "skip",
@@ -55,11 +59,12 @@ export function ProjectorPage() {
   if (!joinSlug) {
     return <EmptyState>Invalid link.</EmptyState>;
   }
-  if (info === undefined || messages === undefined) {
-    return <p role="status">Loading…</p>;
-  }
+  // Check `info === null` first: `messages` is skipped (stays undefined) for an unknown event.
   if (info === null) {
     return <EventNotFound code={joinSlug} />;
+  }
+  if (info === undefined || messages === undefined) {
+    return <p role="status">Loading…</p>;
   }
 
   const joinUrl = `${window.location.origin}/join/${joinSlug}`;
@@ -101,7 +106,7 @@ export function ProjectorPage() {
             </section>
           )}
           <div className="projector__feed">
-            <MessageList messages={messages} />
+            <MessageList messages={messages} reactions={messageReactions} />
           </div>
           </>
         )}

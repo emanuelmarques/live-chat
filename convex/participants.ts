@@ -1,6 +1,8 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireModerator } from "./lib/requireModerator";
+import { MAX_DISPLAY_NAME_LENGTH, assertMaxLength } from "./lib/limits";
+import { authorKey } from "./lib/authorKey";
 
 /** Public: how many people have joined the event's chat (shown on the projector). */
 export const countParticipants = query({
@@ -40,6 +42,7 @@ export const joinEvent = mutation({
     if (trimmedName.length === 0) {
       throw new Error("A display name is required.");
     }
+    assertMaxLength(trimmedName, MAX_DISPLAY_NAME_LENGTH, "Your name");
     const event = await ctx.db.get(eventId);
     if (event === null || event.status === "ended") {
       throw new Error("This event has ended.");
@@ -49,6 +52,7 @@ export const joinEvent = mutation({
       displayName: trimmedName,
       joinedAt: Date.now(),
       kickedAt: null,
+      publicKey: crypto.randomUUID(),
     });
     return { participantId };
   },
@@ -78,6 +82,6 @@ export const getParticipantStatus = query({
     if (participant === null || participant.eventId !== eventId) {
       return null;
     }
-    return { kicked: Boolean(participant.kickedAt) };
+    return { kicked: Boolean(participant.kickedAt), authorKey: authorKey(participant) };
   },
 });
