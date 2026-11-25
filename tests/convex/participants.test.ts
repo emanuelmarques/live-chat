@@ -175,4 +175,30 @@ describe("participants", () => {
       firstKickedAt,
     );
   });
+
+  test("unkickParticipant restores access and requires a moderator", async () => {
+    const t = newTestInstance();
+    const sessionToken = await createModeratorSession(t);
+    const { eventId } = await t.mutation(api.events.createEvent, { sessionToken, name: "Podcast Live" });
+    const { participantId } = await t.mutation(api.participants.joinEvent, { eventId, displayName: "Ana" });
+    await t.mutation(api.participants.kickParticipant, { sessionToken, participantId });
+
+    await expect(
+      t.mutation(api.participants.unkickParticipant, { sessionToken: "bad-token", participantId }),
+    ).rejects.toThrow();
+    expect(
+      await t.query(api.participants.getParticipantStatus, { eventId, participantId }),
+    ).toMatchObject({ kicked: true });
+
+    await t.mutation(api.participants.unkickParticipant, { sessionToken, participantId });
+    expect(
+      await t.query(api.participants.getParticipantStatus, { eventId, participantId }),
+    ).toMatchObject({ kicked: false });
+    const list = await t.query(api.participants.listParticipants, { sessionToken, eventId });
+    expect(list.find((p) => p.participantId === participantId)?.kickedAt).toBeNull();
+
+    // They can post again, and unkicking someone who is not kicked is a no-op.
+    await t.mutation(api.messages.sendMessage, { eventId, participantId, content: "I'm back" });
+    await t.mutation(api.participants.unkickParticipant, { sessionToken, participantId });
+  });
 });

@@ -20,6 +20,7 @@ export function ParticipantsPage() {
   const sessionToken = getStoredSessionToken() ?? "";
   const participants = useQuery(api.participants.listParticipants, { sessionToken, eventId });
   const kickParticipant = useMutation(api.participants.kickParticipant);
+  const unkickParticipant = useMutation(api.participants.unkickParticipant);
   const [filter, setFilter] = useState("");
 
   if (!eventIdParam) {
@@ -31,6 +32,11 @@ export function ParticipantsPage() {
       return;
     }
     await kickParticipant({ sessionToken, participantId });
+  }
+
+  async function handleUnkick(participantId: Id<"participants">, displayName: string) {
+    if (!window.confirm(`Let ${displayName} back into this event?`)) return;
+    await unkickParticipant({ sessionToken, participantId });
   }
 
   const visible = participants?.filter((p) =>
@@ -80,9 +86,18 @@ export function ParticipantsPage() {
                   {new Date(p.joinedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>
                 {p.kickedAt ? (
-                  <span className="badge badge--quiet" style={{ marginLeft: 0 }}>
-                    Removed
-                  </span>
+                  <>
+                    <span className="badge badge--quiet" style={{ marginLeft: 0 }}>
+                      Removed
+                    </span>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => handleUnkick(p.participantId, p.displayName)}
+                    >
+                      Restore
+                    </Button>
+                  </>
                 ) : (
                   <Button
                     type="button"

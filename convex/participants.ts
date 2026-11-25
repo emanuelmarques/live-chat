@@ -1,6 +1,6 @@
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { requireModerator } from "./lib/requireModerator";
 import { MAX_DISPLAY_NAME_LENGTH, assertMaxLength } from "./lib/limits";
 import { authorKey } from "./lib/authorKey";
@@ -128,6 +128,26 @@ export const kickParticipant = mutation({
       .withIndex("by_participant", (q) => q.eq("participantId", participantId))
       .unique();
     if (presence) await ctx.db.delete(presence._id);
+    return {};
+  },
+});
+
+/**
+ * Moderator-only: lets a removed participant back in. Their existing identity is
+ * kept, so their old messages stay theirs and they can post, react and vote again
+ * (their client notices through `getParticipantStatus` and resumes by itself).
+ */
+export const unkickParticipant = mutation({
+  args: { sessionToken: v.string(), participantId: v.id("participants") },
+  handler: async (ctx, { sessionToken, participantId }) => {
+    await requireModerator(ctx, sessionToken);
+    const participant = await ctx.db.get(participantId);
+    if (participant === null) {
+      throw new ConvexError("Participant not found.");
+    }
+    if (participant.kickedAt) {
+      await ctx.db.patch(participantId, { kickedAt: null });
+    }
     return {};
   },
 });
