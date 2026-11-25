@@ -1,4 +1,5 @@
 import type { QueryCtx, MutationCtx } from "../_generated/server";
+import { ConvexError } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 
 /** Throws unless `sessionToken` names a current, unexpired session; returns the moderator id. */
@@ -11,7 +12,7 @@ export async function requireModerator(
     .withIndex("by_token", (q) => q.eq("token", sessionToken))
     .first();
   if (session === null || session.expiresAt < Date.now()) {
-    throw new Error("Not authenticated.");
+    throw new ConvexError("Not authenticated.");
   }
   return session.moderatorId;
 }

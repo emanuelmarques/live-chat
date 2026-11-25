@@ -1,5 +1,5 @@
 import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { requireModerator } from "./lib/requireModerator";
 import {
   MAX_POLL_OPTION_LENGTH,
@@ -12,18 +12,18 @@ function validatePollInput(rawQuestion: string, rawOptions: string[]) {
   const question = rawQuestion.trim();
   const options = rawOptions.map((o) => o.trim());
   if (question.length === 0) {
-    throw new Error("A poll needs a question.");
+    throw new ConvexError("A poll needs a question.");
   }
   assertMaxLength(question, MAX_POLL_QUESTION_LENGTH, "The question");
   if (options.length < 2 || options.length > 6) {
-    throw new Error("A poll must have between 2 and 6 options.");
+    throw new ConvexError("A poll must have between 2 and 6 options.");
   }
   if (options.some((o) => o.length === 0)) {
-    throw new Error("Poll options cannot be empty.");
+    throw new ConvexError("Poll options cannot be empty.");
   }
   for (const o of options) assertMaxLength(o, MAX_POLL_OPTION_LENGTH, "An option");
   if (new Set(options.map((o) => o.toLowerCase())).size !== options.length) {
-    throw new Error("Poll options must be different from each other.");
+    throw new ConvexError("Poll options must be different from each other.");
   }
   return { question, options };
 }
@@ -41,13 +41,13 @@ export const createAndStartPoll = mutation({
     const { question, options } = validatePollInput(rawQuestion, rawOptions);
     const event = await ctx.db.get(eventId);
     if (event === null) {
-      throw new Error("Event not found.");
+      throw new ConvexError("Event not found.");
     }
     if (event.status !== "active") {
-      throw new Error("This event has ended.");
+      throw new ConvexError("This event has ended.");
     }
     if (event.activePollId !== null) {
-      throw new Error("Another poll is already active for this event.");
+      throw new ConvexError("Another poll is already active for this event.");
     }
     const pollId = await ctx.db.insert("polls", {
       eventId,
@@ -77,7 +77,7 @@ export const createDraftPoll = mutation({
     const { question, options } = validatePollInput(rawQuestion, rawOptions);
     const event = await ctx.db.get(eventId);
     if (event === null) {
-      throw new Error("Event not found.");
+      throw new ConvexError("Event not found.");
     }
     const pollId = await ctx.db.insert("polls", {
       eventId,
@@ -118,10 +118,10 @@ export const deleteDraftPoll = mutation({
     await requireModerator(ctx, sessionToken);
     const poll = await ctx.db.get(pollId);
     if (poll === null) {
-      throw new Error("Poll not found.");
+      throw new ConvexError("Poll not found.");
     }
     if (poll.status !== "draft") {
-      throw new Error("Only prepared (draft) polls can be deleted.");
+      throw new ConvexError("Only prepared (draft) polls can be deleted.");
     }
     await ctx.db.delete(pollId);
     return {};
@@ -143,21 +143,21 @@ export const activatePoll = mutation({
     await requireModerator(ctx, sessionToken);
     const poll = await ctx.db.get(pollId);
     if (poll === null) {
-      throw new Error("Poll not found.");
+      throw new ConvexError("Poll not found.");
     }
     if (poll.status !== "draft") {
-      throw new Error("Only prepared (draft) polls can be activated.");
+      throw new ConvexError("Only prepared (draft) polls can be activated.");
     }
     const event = await ctx.db.get(poll.eventId);
     if (event === null) {
-      throw new Error("Event not found.");
+      throw new ConvexError("Event not found.");
     }
     if (event.status !== "active") {
-      throw new Error("This event has ended.");
+      throw new ConvexError("This event has ended.");
     }
     if (event.activePollId !== null) {
       if (!replaceActive) {
-        throw new Error("Another poll is already active for this event.");
+        throw new ConvexError("Another poll is already active for this event.");
       }
       await ctx.db.patch(event.activePollId, { status: "ended", endedAt: Date.now() });
     }
@@ -176,21 +176,21 @@ export const castVote = mutation({
   handler: async (ctx, { pollId, participantId, optionIndex }) => {
     const poll = await ctx.db.get(pollId);
     if (poll === null || poll.status !== "active") {
-      throw new Error("This poll is no longer accepting votes.");
+      throw new ConvexError("This poll is no longer accepting votes.");
     }
     if (optionIndex < 0 || optionIndex >= poll.options.length) {
-      throw new Error("Invalid option.");
+      throw new ConvexError("Invalid option.");
     }
     const event = await ctx.db.get(poll.eventId);
     if (event === null || event.status === "ended") {
-      throw new Error("This event has ended.");
+      throw new ConvexError("This event has ended.");
     }
     const participant = await ctx.db.get(participantId);
     if (participant === null || participant.eventId !== poll.eventId) {
-      throw new Error("Participant not found for this event.");
+      throw new ConvexError("Participant not found for this event.");
     }
     if (participant.kickedAt) {
-      throw new Error("Kicked: you've been removed from this event by the moderator.");
+      throw new ConvexError("Kicked: you've been removed from this event by the moderator.");
     }
     const existing = await ctx.db
       .query("pollVotes")
@@ -199,7 +199,7 @@ export const castVote = mutation({
       )
       .first();
     if (existing !== null) {
-      throw new Error("You have already voted in this poll.");
+      throw new ConvexError("You have already voted in this poll.");
     }
     await ctx.db.insert("pollVotes", { pollId, participantId, optionIndex, votedAt: Date.now() });
     return {};
@@ -277,10 +277,10 @@ export const endPoll = mutation({
     await requireModerator(ctx, sessionToken);
     const poll = await ctx.db.get(pollId);
     if (poll === null) {
-      throw new Error("Poll not found.");
+      throw new ConvexError("Poll not found.");
     }
     if (poll.status === "draft") {
-      throw new Error("A prepared poll has not started; delete it instead.");
+      throw new ConvexError("A prepared poll has not started; delete it instead.");
     }
     if (poll.status === "ended") {
       // Already ended (double click / stale tab): don't rewrite endedAt, which

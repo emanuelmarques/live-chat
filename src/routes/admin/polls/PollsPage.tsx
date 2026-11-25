@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
+import { ConvexError } from "convex/values";
 import { useQuery, useMutation, api, type Id } from "../../../lib/convexClient";
 import { getStoredSessionToken } from "../../../lib/session";
 import { Button } from "../../../components/Button";
@@ -37,10 +38,16 @@ export function PollsPage() {
       await action();
       return true;
     } catch (err) {
-      const raw = err instanceof Error ? err.message : "";
-      // Convex wraps server errors ("... Uncaught Error: <message>"); keep just ours.
-      const match = raw.match(/Uncaught Error: (.+?)(?:\n|$)/);
-      setActionError(match?.[1] ?? "Something went wrong. Please try again.");
+      // The server throws ConvexError with a user-facing string; unlike plain Errors it
+      // survives production deployments (which redact everything else to "Server Error").
+      if (err instanceof ConvexError && typeof err.data === "string") {
+        setActionError(err.data);
+      } else {
+        const raw = err instanceof Error ? err.message : "";
+        // Dev deployments wrap plain errors ("... Uncaught Error: <message>").
+        const match = raw.match(/Uncaught Error: (.+?)(?:\n|$)/);
+        setActionError(match?.[1] ?? "Something went wrong. Please try again.");
+      }
       return false;
     }
   }
@@ -51,7 +58,19 @@ export function PollsPage() {
 
   function readForm() {
     const trimmedOptions = options.map((o) => o.trim()).filter((o) => o.length > 0);
-    if (!question.trim() || trimmedOptions.length < 2) return null;
+    if (!question.trim()) {
+      setActionError("A poll needs a question.");
+      return null;
+    }
+    if (trimmedOptions.length < 2) {
+      setActionError("A poll needs at least 2 options.");
+      return null;
+    }
+    if (new Set(trimmedOptions.map((o) => o.toLowerCase())).size !== trimmedOptions.length) {
+      setActionError("Poll options must be different from each other.");
+      return null;
+    }
+    setActionError(null);
     return { question: question.trim(), options: trimmedOptions, revealMode };
   }
 
