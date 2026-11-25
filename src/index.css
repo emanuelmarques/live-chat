@@ -2466,3 +2466,24 @@ button.poll__option:disabled {
   flex-direction: column;
   gap: 1rem;
 }
+
+/* ---------- poll history (light cards: the shared poll styles assume a dark background) ---------- */
+
+.poll-history .poll__option {
+  color: var(--ink);
+  border-color: var(--line);
+  background: var(--sand);
+}
+
+.poll-history .bar {
+  background: var(--line);
+}
+
+.poll-history .bar i {
+  background: var(--poll);
+}
+
+.poll-history .poll__option--top {
+  border-color: var(--poll);
+  font-weight: 700;
+}

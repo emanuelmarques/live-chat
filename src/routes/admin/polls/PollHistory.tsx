@@ -32,7 +32,7 @@ export function PollHistory({
         history.map((poll) => {
           const top = Math.max(...poll.counts);
           return (
-            <article key={poll.pollId} className="card stack" aria-label={poll.question}>
+            <article key={poll.pollId} className="card stack poll-history" aria-label={poll.question}>
               <p className="mono-label" style={{ margin: 0 }}>
                 {poll.isActive ? "Live now" : "Ended"} · {poll.totalVotes} vote(s)
               </p>
@@ -47,7 +47,7 @@ export function PollHistory({
                   const pct = poll.totalVotes > 0 ? Math.round((count / poll.totalVotes) * 100) : 0;
                   return (
                     <li key={i}>
-                      <div className="poll__option">
+                      <div className={`poll__option${count === top && top > 0 ? " poll__option--top" : ""}`}>
                         <span>
                           {option}
                           {top > 0 && count === top ? " ★" : ""}
