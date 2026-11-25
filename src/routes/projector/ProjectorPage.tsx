@@ -81,7 +81,9 @@ export function ProjectorPage() {
       </button>
       <section className="projector__chat">
         <header className="projector__head">
-          <h1>{info.name}</h1>
+          <h1 title={info.name} data-long={info.name.length > 40}>
+            {info.name}
+          </h1>
           {info.status !== "ended" && (
             <>
               <div className="projector__count" role="status">

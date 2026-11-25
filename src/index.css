@@ -1269,8 +1269,21 @@ button.poll__option:disabled {
 
 .projector__head h1 {
   flex: 1;
+  min-width: 0;
   margin: 0;
   font-size: clamp(2.5rem, 3.4vw, 4rem);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  /* A long event name must never push the chat off the screen: cap at two lines. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.projector__head h1[data-long="true"] {
+  font-size: clamp(1.6rem, 2.2vw, 2.6rem);
 }
 
 .projector__count {
