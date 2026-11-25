@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, api, type Id } from "./convexClient";
 
 const HEARTBEAT_INTERVAL_MS = 60_000;
@@ -33,8 +33,13 @@ export function useActiveParticipantCount(eventId: Id<"events"> | undefined) {
     const timer = setInterval(() => setRefreshKey((n) => n + 1), COUNT_REFRESH_INTERVAL_MS);
     return () => clearInterval(timer);
   }, []);
-  return useQuery(
+  const count = useQuery(
     api.participants.countActiveParticipants,
     eventId ? { eventId, refreshKey } : "skip",
   );
+  // A new refreshKey is a new subscription, so `count` is briefly undefined while
+  // it loads. Keep showing the last known value instead of flashing 0 / "…".
+  const lastCount = useRef<number | undefined>(undefined);
+  if (count !== undefined) lastCount.current = count;
+  return count ?? lastCount.current;
 }
