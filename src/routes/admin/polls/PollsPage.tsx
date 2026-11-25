@@ -24,12 +24,15 @@ export function PollsPage() {
   const createDraft = useMutation(api.polls.createDraftPoll);
   const activate = useMutation(api.polls.activatePoll);
   const deleteDraft = useMutation(api.polls.deleteDraftPoll);
+  const updateDraft = useMutation(api.polls.updateDraftPoll);
 
   const [tab, setTab] = useState<"manage" | "history">("manage");
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [revealMode, setRevealMode] = useState<"live" | "atEnd">("live");
   const [actionError, setActionError] = useState<string | null>(null);
+  /** The prepared poll currently loaded in the form for editing, if any. */
+  const [editingId, setEditingId] = useState<Id<"polls"> | null>(null);
 
   /** Runs a moderator action; shows the server's message instead of failing silently. */
   async function run(action: () => Promise<unknown>): Promise<boolean> {
@@ -75,6 +78,7 @@ export function PollsPage() {
   }
 
   function resetForm() {
+    setEditingId(null);
     setQuestion("");
     setOptions(["", ""]);
     setRevealMode("live");
@@ -82,6 +86,8 @@ export function PollsPage() {
 
   async function handleCreate(event: FormEvent) {
     event.preventDefault();
+    // Pressing Enter while editing a prepared poll saves it instead of starting a new one.
+    if (editingId) return handleSaveChanges();
     const input = readForm();
     if (!input) return;
     const hasActive = Boolean(activePoll && activePoll.isActive);
@@ -105,6 +111,7 @@ export function PollsPage() {
   }
 
   function handleClone(poll: ClonedPoll) {
+    setEditingId(null);
     setQuestion(poll.question);
     setOptions(poll.options);
     setRevealMode(poll.revealMode);
@@ -114,6 +121,27 @@ export function PollsPage() {
     const input = readForm();
     if (!input) return;
     const ok = await run(() => createDraft({ sessionToken, eventId, ...input }));
+    if (ok) resetForm();
+  }
+
+  function handleEdit(draft: {
+    pollId: Id<"polls">;
+    question: string;
+    options: string[];
+    revealMode: "live" | "atEnd";
+  }) {
+    setActionError(null);
+    setEditingId(draft.pollId);
+    setQuestion(draft.question);
+    setOptions(draft.options);
+    setRevealMode(draft.revealMode);
+  }
+
+  async function handleSaveChanges() {
+    if (!editingId) return;
+    const input = readForm();
+    if (!input) return;
+    const ok = await run(() => updateDraft({ sessionToken, pollId: editingId, ...input }));
     if (ok) resetForm();
   }
 
@@ -127,12 +155,14 @@ export function PollsPage() {
     ) {
       return;
     }
-    await run(() => activate({ sessionToken, pollId, replaceActive: hasActive }));
+    const ok = await run(() => activate({ sessionToken, pollId, replaceActive: hasActive }));
+    if (ok && editingId === pollId) resetForm();
   }
 
   async function handleDeleteDraft(pollId: Id<"polls">) {
     if (!window.confirm("Delete this prepared poll?")) return;
-    await run(() => deleteDraft({ sessionToken, pollId }));
+    const ok = await run(() => deleteDraft({ sessionToken, pollId }));
+    if (ok && editingId === pollId) resetForm();
   }
 
   if (activePoll === undefined || drafts === undefined || event === undefined) {
@@ -158,6 +188,9 @@ export function PollsPage() {
               </ul>
               <div className="row" style={{ flexWrap: "wrap" }}>
                 <Button onClick={() => handleActivate(draft.pollId)}>Go live</Button>
+                <Button variant="secondary" onClick={() => handleEdit(draft)}>
+                  {editingId === draft.pollId ? "Editing…" : "Edit"}
+                </Button>
                 <Button variant="secondary" onClick={() => handleDeleteDraft(draft.pollId)}>
                   Delete
                 </Button>
@@ -197,6 +230,11 @@ export function PollsPage() {
 
   const createForm = (
     <form onSubmit={handleCreate} className="card card--lift stack">
+      {editingId && (
+        <p className="mono-label" role="status" style={{ margin: 0 }}>
+          Editing a prepared poll
+        </p>
+      )}
       <TextField
         label="Question"
         maxLength={MAX_POLL_QUESTION_LENGTH}
@@ -257,16 +295,24 @@ export function PollsPage() {
         </label>
       </fieldset>
       <div className="row" style={{ flexWrap: "wrap" }}>
-        {eventLive && <Button type="submit">Start poll</Button>}
-        <Button
-          type="button"
-          variant={eventLive ? "secondary" : "primary"}
-          onClick={handleSaveDraft}
-        >
-          Save for later
-        </Button>
+        {editingId ? (
+          <Button type="submit">
+            Save changes
+          </Button>
+        ) : (
+          <>
+            {eventLive && <Button type="submit">Start poll</Button>}
+            <Button
+              type="button"
+              variant={eventLive ? "secondary" : "primary"}
+              onClick={handleSaveDraft}
+            >
+              Save for later
+            </Button>
+          </>
+        )}
         <Button type="button" variant="secondary" onClick={resetForm}>
-          Clear
+          {editingId ? "Cancel" : "Clear"}
         </Button>
       </div>
     </form>

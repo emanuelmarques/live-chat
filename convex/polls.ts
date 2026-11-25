@@ -93,6 +93,30 @@ export const createDraftPoll = mutation({
   },
 });
 
+/** Edits a prepared (draft) poll in place. Polls that already went live are immutable. */
+export const updateDraftPoll = mutation({
+  args: {
+    sessionToken: v.string(),
+    pollId: v.id("polls"),
+    question: v.string(),
+    options: v.array(v.string()),
+    revealMode: v.union(v.literal("live"), v.literal("atEnd")),
+  },
+  handler: async (ctx, { sessionToken, pollId, question: rawQuestion, options: rawOptions, revealMode }) => {
+    await requireModerator(ctx, sessionToken);
+    const { question, options } = validatePollInput(rawQuestion, rawOptions);
+    const poll = await ctx.db.get(pollId);
+    if (poll === null) {
+      throw new ConvexError("Poll not found.");
+    }
+    if (poll.status !== "draft") {
+      throw new ConvexError("Only prepared (draft) polls can be edited.");
+    }
+    await ctx.db.patch(pollId, { question, options, revealMode });
+    return {};
+  },
+});
+
 export const listDraftPolls = query({
   args: { sessionToken: v.string(), eventId: v.id("events") },
   handler: async (ctx, { sessionToken, eventId }) => {

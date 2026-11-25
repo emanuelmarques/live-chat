@@ -15,6 +15,60 @@ async function setupEventWithTwoParticipants(t: ReturnType<typeof newTestInstanc
 }
 
 describe("polls", () => {
+  test("updateDraftPoll edits a prepared poll, validates, and refuses live or ended polls", async () => {
+    const t = newTestInstance();
+    const sessionToken = await createModeratorSession(t);
+    const { eventId } = await t.mutation(api.events.createEvent, { sessionToken, name: "E" });
+    const base = { sessionToken, eventId, revealMode: "live" as const };
+    const { pollId } = await t.mutation(api.polls.createDraftPoll, {
+      ...base,
+      question: "Old?",
+      options: ["A", "B"],
+    });
+
+    await expect(
+      t.mutation(api.polls.updateDraftPoll, {
+        sessionToken: "bad-token",
+        pollId,
+        question: "New?",
+        options: ["X", "Y"],
+        revealMode: "live",
+      }),
+    ).rejects.toThrow();
+    await expect(
+      t.mutation(api.polls.updateDraftPoll, {
+        sessionToken,
+        pollId,
+        question: "New?",
+        options: ["X", "x"],
+        revealMode: "live",
+      }),
+    ).rejects.toThrow(/different/);
+
+    await t.mutation(api.polls.updateDraftPoll, {
+      sessionToken,
+      pollId,
+      question: "  New?  ",
+      options: ["X", "Y", "Z"],
+      revealMode: "atEnd",
+    });
+    const drafts = await t.query(api.polls.listDraftPolls, { sessionToken, eventId });
+    expect(drafts).toEqual([
+      { pollId, question: "New?", options: ["X", "Y", "Z"], revealMode: "atEnd" },
+    ]);
+
+    await t.mutation(api.polls.activatePoll, { sessionToken, pollId });
+    await expect(
+      t.mutation(api.polls.updateDraftPoll, {
+        sessionToken,
+        pollId,
+        question: "Too late?",
+        options: ["X", "Y"],
+        revealMode: "live",
+      }),
+    ).rejects.toThrow(/Only prepared/);
+  });
+
   test("createAndStartPoll validates 2-6 options", async () => {
     const t = newTestInstance();
     const sessionToken = await createModeratorSession(t);
