@@ -318,9 +318,12 @@ export function EventsPage() {
                         value={`${window.location.origin}/join/${event.joinSlug}`}
                         size={200}
                       />
+                      <span className="mono-label" style={{ color: "var(--muted)", alignSelf: "center" }}>
+                        Or
+                      </span>
                       <div className="join-code-block">
                         <span className="mono-label" style={{ color: "var(--muted)" }}>
-                          Can't scan? Enter this code
+                          Go to {window.location.host} and enter this code
                         </span>
                         <span className="join-code">{event.joinSlug}</span>
                         <CopyCodeButton code={event.joinSlug} />

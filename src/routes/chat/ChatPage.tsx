@@ -1,10 +1,10 @@
 import { useRef, useState, type FormEvent } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { useQuery, useMutation, api, type Id } from "../../lib/convexClient";
-import { getStoredParticipant } from "../../lib/participant";
+import { getStoredParticipant, storeParticipant } from "../../lib/participant";
 import { hasVotedInPoll, markPollVoted } from "../../lib/pollVotes";
 import { useEmojiComposer } from "../../lib/useEmojiComposer";
-import { MAX_MESSAGE_LENGTH } from "../../lib/limits";
+import { MAX_DISPLAY_NAME_LENGTH, MAX_MESSAGE_LENGTH } from "../../lib/limits";
 import { useReactionFlights } from "../../lib/useReactionFlights";
 import { usePagedMessages } from "../../lib/usePagedMessages";
 import { useMessageReactions } from "../../lib/useMessageReactions";
@@ -32,6 +32,9 @@ export function ChatPage() {
   const [voteError, setVoteError] = useState<string | null>(null);
   const [, setVoteTick] = useState(0);
   const composerWrapRef = useRef<HTMLDivElement>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
 
   const info = useQuery(api.events.getJoinInfo, joinSlug ? { joinSlug } : "skip");
   const { messages, status: messagesStatus, loadOlder } = usePagedMessages(info?.eventId);
@@ -62,6 +65,7 @@ export function ChatPage() {
   );
   const sendMessage = useMutation(api.messages.sendMessage);
   const deleteMessage = useMutation(api.messages.deleteMessage);
+  const renameParticipant = useMutation(api.participants.renameParticipant);
   const sendReaction = useMutation(api.reactions.sendReaction);
   const toggleMessageReaction = useMutation(api.messageReactions.toggleMessageReaction);
   const activePoll = useQuery(api.polls.getActivePoll, info ? { eventId: info.eventId } : "skip");
@@ -127,6 +131,38 @@ export function ChatPage() {
           ? "You're sending messages too quickly — please slow down."
           : "Couldn't send that message. Please try again.",
       );
+    }
+  }
+
+  const currentName = participantStatus?.displayName ?? participant.displayName;
+
+  function startRename() {
+    setNameDraft(currentName);
+    setNameError(null);
+    setRenaming(true);
+  }
+
+  async function handleRename(event: FormEvent) {
+    event.preventDefault();
+    setNameError(null);
+    const trimmed = nameDraft.trim();
+    if (trimmed.length === 0) {
+      setNameError("Please enter a name.");
+      return;
+    }
+    if (trimmed === currentName) {
+      setRenaming(false);
+      return;
+    }
+    try {
+      await renameParticipant({
+        participantId: participant!.participantId as Id<"participants">,
+        displayName: trimmed,
+      });
+      storeParticipant(joinSlug!, { ...participant!, displayName: trimmed });
+      setRenaming(false);
+    } catch {
+      setNameError("Couldn't change your name. Please try again.");
     }
   }
 
@@ -204,9 +240,47 @@ export function ChatPage() {
           <span className="live-dot" aria-hidden="true" />
           Live
           <span style={{ color: "var(--muted)", minWidth: 0, overflowWrap: "anywhere" }}>
-            · you are {participant.displayName}
+            · you are {currentName}
           </span>
+          {!renaming && (
+            <button
+              type="button"
+              className="btn btn--ghost"
+              style={{ minHeight: 0, padding: "0.1rem 0.5rem" }}
+              onClick={startRename}
+            >
+              Change name
+            </button>
+          )}
         </div>
+        {renaming && (
+          <form
+            onSubmit={handleRename}
+            style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginTop: "0.5rem" }}
+          >
+            <label htmlFor="rename-input" className="visually-hidden">
+              Your name
+            </label>
+            <input
+              id="rename-input"
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              maxLength={MAX_DISPLAY_NAME_LENGTH}
+              autoComplete="nickname"
+              autoFocus
+              style={{ flex: 1, minWidth: 0 }}
+            />
+            <Button type="submit">Save</Button>
+            <button type="button" className="btn btn--secondary" onClick={() => setRenaming(false)}>
+              Cancel
+            </button>
+          </form>
+        )}
+        {nameError && (
+          <p role="alert" className="alert" style={{ marginTop: "0.5rem" }}>
+            {nameError}
+          </p>
+        )}
         <h1 className="chat__title">{info.name}</h1>
       </header>
       {activePoll && activePoll.isActive && (

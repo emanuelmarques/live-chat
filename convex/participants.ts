@@ -111,6 +111,45 @@ export const joinEvent = mutation({
   },
 });
 
+/**
+ * Public (participantId is the credential): lets a participant change the name
+ * they joined with. Messages keep a denormalized copy of the author's name, so
+ * every message they sent is updated too — old and new messages (and quoted
+ * replies) all show the new name.
+ */
+export const renameParticipant = mutation({
+  args: { participantId: v.id("participants"), displayName: v.string() },
+  handler: async (ctx, { participantId, displayName }) => {
+    const trimmedName = displayName.trim();
+    if (trimmedName.length === 0) {
+      throw new ConvexError("A display name is required.");
+    }
+    assertMaxLength(trimmedName, MAX_DISPLAY_NAME_LENGTH, "Your name");
+    const participant = await ctx.db.get(participantId);
+    if (participant === null) {
+      throw new ConvexError("Participant not found.");
+    }
+    if (participant.kickedAt) {
+      throw new ConvexError("Kicked: you've been removed from this event by the moderator.");
+    }
+    const event = await ctx.db.get(participant.eventId);
+    if (event === null || event.status === "ended") {
+      throw new ConvexError("This event has ended.");
+    }
+    if (participant.displayName === trimmedName) return { displayName: trimmedName };
+
+    await ctx.db.patch(participantId, { displayName: trimmedName });
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_participant", (q) => q.eq("participantId", participantId))
+      .collect();
+    for (const message of messages) {
+      await ctx.db.patch(message._id, { authorDisplayName: trimmedName });
+    }
+    return { displayName: trimmedName };
+  },
+});
+
 /** Moderator-only: removes a participant from the event — they can no longer post, react, or vote. */
 export const kickParticipant = mutation({
   args: { sessionToken: v.string(), participantId: v.id("participants") },
@@ -160,6 +199,10 @@ export const getParticipantStatus = query({
     if (participant === null || participant.eventId !== eventId) {
       return null;
     }
-    return { kicked: Boolean(participant.kickedAt), authorKey: authorKey(participant) };
+    return {
+      kicked: Boolean(participant.kickedAt),
+      authorKey: authorKey(participant),
+      displayName: participant.displayName,
+    };
   },
 });

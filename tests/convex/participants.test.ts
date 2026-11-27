@@ -35,6 +35,44 @@ describe("participants", () => {
     expect(first.participantId).not.toBe(second.participantId);
   });
 
+  test("renameParticipant updates the name on all of their messages and replies", async () => {
+    const t = newTestInstance();
+    const sessionToken = await createModeratorSession(t);
+    const { eventId } = await t.mutation(api.events.createEvent, { sessionToken, name: "E" });
+    const ana = await t.mutation(api.participants.joinEvent, { eventId, displayName: "Ana" });
+    const rui = await t.mutation(api.participants.joinEvent, { eventId, displayName: "Rui" });
+    const { messageId } = await t.mutation(api.messages.sendMessage, {
+      eventId,
+      participantId: ana.participantId,
+      content: "hello",
+    });
+    await t.mutation(api.messages.sendMessage, {
+      eventId,
+      participantId: rui.participantId,
+      content: "re",
+      replyToMessageId: messageId,
+    });
+
+    await t.mutation(api.participants.renameParticipant, {
+      participantId: ana.participantId,
+      displayName: "  Ana Maria ",
+    });
+
+    const { page } = await t.query(api.messages.listMessages, {
+      eventId,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    expect(page.map((m) => m.authorDisplayName).sort()).toEqual(["Ana Maria", "Rui"]);
+    expect(page.find((m) => m.replyTo)?.replyTo?.authorDisplayName).toBe("Ana Maria");
+
+    await expect(
+      t.mutation(api.participants.renameParticipant, {
+        participantId: ana.participantId,
+        displayName: "   ",
+      }),
+    ).rejects.toThrow();
+  });
+
   test("countParticipants only counts the given event", async () => {
     const t = newTestInstance();
     const sessionToken = await createModeratorSession(t);

@@ -1662,9 +1662,22 @@ button.poll__option:disabled {
   gap: clamp(1rem, 2vw, 1.75rem);
 }
 
-.projector--poll .join-card__scan,
-.projector--poll .join-card__divider {
+.projector--poll .join-card__scan {
   display: none;
+}
+
+/* in the compact row the "or" becomes a vertical divider between QR and link + code */
+.projector--poll .join-card__divider {
+  flex-direction: column;
+  align-self: stretch;
+  gap: 0.5rem;
+}
+
+.projector--poll .join-card__divider::before,
+.projector--poll .join-card__divider::after {
+  width: 2px;
+  height: auto;
+  min-height: 0.5rem;
 }
 
 .projector--poll .join-card__qr img {
