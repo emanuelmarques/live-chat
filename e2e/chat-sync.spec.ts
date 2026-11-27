@@ -28,14 +28,14 @@ test.describe("US1: join and chat across room, remote, and projector", () => {
     await projector.goto(`/projector/${joinSlug}`);
 
     await room.getByLabel("Type a message").fill("Hello from the room 👋");
-    await room.getByRole("button", { name: "Send" }).click();
+    await room.getByRole("button", { name: "Send", exact: true }).click();
 
     await expect(remote.getByText("Hello from the room 👋")).toBeVisible({ timeout: 5000 });
     await expect(projector.getByText("Hello from the room 👋")).toBeVisible({ timeout: 5000 });
 
     await remote.getByRole("button", { name: "Reply" }).first().click();
     await remote.getByLabel("Type a message").fill("Hi back!");
-    await remote.getByRole("button", { name: "Send" }).click();
+    await remote.getByRole("button", { name: "Send", exact: true }).click();
 
     await expect(room.getByText(/Replying to Room Person/)).toBeVisible({ timeout: 5000 });
     await expect(projector.getByText(/Replying to Room Person/)).toBeVisible({ timeout: 5000 });

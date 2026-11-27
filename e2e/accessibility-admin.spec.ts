@@ -27,6 +27,8 @@ test.describe("Polish: admin accessibility (FR-036)", () => {
 
     await loginAsModerator(page);
 
+    await expect(page.getByRole("main")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const eventsScan = await new AxeBuilder({ page }).analyze();
     expect(eventsScan.violations).toEqual([]);
 

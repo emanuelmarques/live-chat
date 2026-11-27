@@ -26,7 +26,7 @@ test.describe("US2: moderated, safe chat", () => {
     await other.getByRole("button", { name: "Join chat" }).click();
 
     await sender.getByLabel("Type a message").fill(`this has ${term} in it`);
-    await sender.getByRole("button", { name: "Send" }).click();
+    await sender.getByRole("button", { name: "Send", exact: true }).click();
 
     // Sender sees their own message held; the other participant never sees it at all.
     await expect(sender.getByText(/awaiting approval/i)).toBeVisible({ timeout: 5000 });

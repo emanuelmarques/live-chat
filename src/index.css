@@ -167,6 +167,7 @@ textarea:focus-visible {
   padding: 0 0.5rem;
   border: 0;
   background: none;
+  color: inherit;
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
