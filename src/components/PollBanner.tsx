@@ -18,7 +18,12 @@ export function PollBanner({ poll, onVote, hasVoted }: PollBannerProps) {
   const counts = poll.resultsVisible ? poll.counts : undefined;
   const total = counts ? counts.reduce((sum, n) => sum + n, 0) : 0;
   return (
-    <div role="region" aria-label="Poll" className="poll">
+    <div
+      role="region"
+      aria-label="Poll"
+      className={`poll${poll.options.length >= 5 ? " poll--dense" : ""}`}
+      style={{ "--poll-n": Math.max(poll.options.length, 1) } as React.CSSProperties}
+    >
       <p className="mono-label" style={{ margin: 0 }}>
         {poll.isActive ? "Poll in progress" : "Poll results"}
         {counts ? ` · ${total} vote(s)` : ""}

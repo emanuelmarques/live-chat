@@ -66,13 +66,14 @@ export function ProjectorPage() {
   }
 
   const joinUrl = `${window.location.origin}/join/${joinSlug}`;
+  const hostStyle = { "--host-len": window.location.host.length } as React.CSSProperties;
   const pollActive = !!(activePoll && activePoll.isActive);
   // Nothing to show yet: make the join QR code the centrepiece.
   const showWelcome = info.status !== "ended" && messages.length === 0 && !highlighted && !pollActive;
 
   return (
     <div
-      className={`projector${pollActive ? " projector--poll" : ""}${showWelcome ? " projector--welcome" : ""}`}
+      className={`projector${pollActive ? " projector--poll" : ""}${pollActive && activePoll && activePoll.options.length >= 7 ? " projector--poll-big" : ""}${showWelcome ? " projector--welcome" : ""}`}
       data-theme={theme}
     >
       <FlyingReactions flights={flights} />
@@ -107,7 +108,7 @@ export function ProjectorPage() {
             <div className="welcome__text">
               <p className="welcome__scan">Scan to join the chat</p>
               <p className="welcome__or mono-label">or go to</p>
-              <p className="welcome__host">{window.location.host}</p>
+              <p className="welcome__host" style={hostStyle}>{window.location.host}</p>
               <p className="welcome__or mono-label">and enter the code</p>
               <p className="welcome__code" aria-label={`Event code ${joinSlug.split("").join(" ")}`}>
                 {joinSlug.toUpperCase().replace(/(.{3})(?=.)/g, "$1 ")}
@@ -144,7 +145,7 @@ export function ProjectorPage() {
             <ol className="join-steps">
               <li>
                 <span className="join-steps__label">Go to</span>
-                <span className="join-steps__host">{window.location.host}</span>
+                <span className="join-steps__host" style={hostStyle}>{window.location.host}</span>
               </li>
               <li>
                 <span className="join-steps__label">and enter the code</span>

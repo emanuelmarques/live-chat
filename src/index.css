@@ -1606,12 +1606,59 @@ button.poll__option:disabled {
   margin: 0.5rem 0 clamp(0.6rem, 2vh, 1.6rem);
 }
 
+/* many options: shrink rows so the poll fits and the join card always stays visible */
 .projector .poll__option {
-  font-size: clamp(1rem, 2.8vh, 1.6rem);
+  font-size: clamp(0.8rem, min(2.8vh, calc(17vh / var(--poll-n, 4))), 1.6rem);
+}
+
+/* very large poll: drop the QR and keep only link + code so every option fits */
+.projector--poll-big .join-card__qr,
+.projector--poll-big .join-card__scan,
+.projector--poll-big .join-card__divider {
+  display: none;
+}
+
+.projector--poll-big .join-steps__code {
+  font-size: clamp(1.3rem, 3.4vh, 2.2rem);
+}
+
+/* 5+ options: the poll takes all the space left above the join card and the
+   option rows share exactly that height, so every option is always shown */
+.projector .poll--dense {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.projector .poll--dense > * {
+  flex: none;
+}
+
+.projector .poll--dense .poll__question {
+  font-size: clamp(1.1rem, 3vh, 2rem);
+}
+
+.projector .poll--dense .poll__options {
+  flex: 1 1 0;
+  min-height: 0;
+  container-type: size;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0;
+}
+
+.projector .poll--dense .poll__option {
+  font-size: clamp(0.7rem, calc(100cqh / (var(--poll-n) * 2.3)), 1.6rem);
+}
+
+.projector .poll--dense .bar {
+  height: clamp(4px, calc(100cqh / (var(--poll-n) * 8)), 16px);
+  margin-top: 0.15rem;
 }
 
 .projector .bar {
-  height: clamp(10px, 2vh, 22px);
+  height: clamp(5px, min(2vh, calc(5vh / var(--poll-n, 4))), 22px);
   margin-top: clamp(0.15rem, 0.5vh, 0.5rem);
 }
 
@@ -1620,7 +1667,7 @@ button.poll__option:disabled {
 }
 
 .projector .join-card {
-  flex: 0 1 auto;
+  flex: 0 0 auto; /* never squeezed: the link/code must always be visible */
   min-height: 0;
   padding: clamp(1rem, 2.6vh, 1.75rem);
   gap: clamp(0.4rem, 1.2vh, 0.9rem);
@@ -1655,49 +1702,33 @@ button.poll__option:disabled {
   font-size: clamp(1.6rem, 4.6vh, 3.3rem);
 }
 
-/* with a poll on screen, the join card turns into a compact row */
-.projector--poll .join-card {
-  flex-direction: row;
-  align-items: center;
-  text-align: left;
-  gap: clamp(1rem, 2vw, 1.75rem);
+/* the link must never break across lines: size it to the card width instead */
+.projector .join-card {
+  container-type: inline-size;
 }
 
+.projector .join-steps__host {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  /* ~0.62em per glyph in the display face: shrink so the whole host fits the card width */
+  font-size: min(clamp(1.3rem, 3.2vh, 2.2rem), calc(100cqi / (var(--host-len, 20) * 0.62)));
+}
+
+/* with a poll on screen, keep the card stacked (QR above, link + code below) but tighter */
 .projector--poll .join-card__scan {
   display: none;
 }
 
-/* in the compact row the "or" becomes a vertical divider between QR and link + code */
-.projector--poll .join-card__divider {
-  flex-direction: column;
-  align-self: stretch;
-  gap: 0.5rem;
-}
-
-.projector--poll .join-card__divider::before,
-.projector--poll .join-card__divider::after {
-  width: 2px;
-  height: auto;
-  min-height: 0.5rem;
-}
-
 .projector--poll .join-card__qr img {
-  height: clamp(100px, 17vh, 200px);
+  height: clamp(100px, 16vh, 190px);
 }
 
 .projector--poll .join-steps {
-  flex: 1;
-  min-width: 0;
-}
-
-.projector--poll .join-steps li {
-  align-items: flex-start;
+  gap: clamp(0.3rem, 1vh, 0.8rem);
 }
 
 .projector--poll .join-steps__code {
-  align-self: flex-start;
-  font-size: clamp(1.2rem, 3.4vh, 2.4rem);
-  letter-spacing: 0.06em;
+  font-size: clamp(1.4rem, 3.8vh, 2.6rem);
 }
 
 /* no messages yet: the join QR code takes centre stage */
@@ -1733,6 +1764,8 @@ button.poll__option:disabled {
 }
 
 .welcome__text {
+  flex: 0 1 clamp(320px, 40vw, 900px);
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: clamp(0.4rem, 1.4vh, 1rem);
@@ -1758,9 +1791,11 @@ button.poll__option:disabled {
 }
 
 .welcome__host {
-  font-family: var(--font-mono);
-  font-size: clamp(1.4rem, 4vh, 3rem);
-  overflow-wrap: anywhere;
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 1.05;
+  white-space: nowrap;
+  font-size: min(clamp(1.4rem, 4.5vh, 3.4rem), calc(100cqi / (var(--host-len, 20) * 0.62)));
 }
 
 .welcome__code {
@@ -1778,6 +1813,10 @@ button.poll__option:disabled {
   }
   .welcome__qr img {
     max-width: 80vw;
+  }
+  .welcome__text {
+    flex: none;
+    width: min(90vw, 700px);
   }
 }
 
